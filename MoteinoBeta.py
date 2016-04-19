@@ -26,9 +26,12 @@ mynetwork.start_listening()
 
 mynetwork.send('TestDevice', {'Command': 123, 'Something': 456})
 """
+# set logging configuration to DEBUG
+# a python module should not do this but we are still in beta mode
 logging.basicConfig(level=logging.DEBUG)
 
 
+# The previous debugging method
 def dprint(s, newline=True):  # print for debugging purposes
     if True:
         sys.stdout.write(s + ('\n' if newline else ''))
@@ -36,8 +39,8 @@ def dprint(s, newline=True):  # print for debugging purposes
 
 def _hexprints(n):
     """
-    Returns a hex sting of lengt 2 that represents the number n
-    :raises ValueRrror if 0 > n or n > 255
+    Returns a hex sting of length 2 that represents the number n
+    :raises ValueError if 0 > n or n > 255
     :param n: int
     :return: string
     """
@@ -212,7 +215,7 @@ types = {
 }
 
 
-class Struct:
+class Struct(object):
     """
     This is a class for parsing a struct through a serial port
     example:
@@ -451,7 +454,7 @@ class ListeningThread(threading.Thread):
         logging.info("Serial listening thread shutting down")
 
 
-class MoteinoNetwork:
+class MoteinoNetwork(object):
     """
     This is the class that user should inteface with. It is a module that
     ables the user to communicate with moteinos through a top level script.
@@ -659,3 +662,14 @@ class MoteinoNetwork:
         """
         if self.print_when_acks_recieved:
             print sender.Name + " responded with an ack when we sent: " + str(last_sent_diction)
+
+
+def a(b):
+    d = dir(b)
+    k = b.__dict__.keys()
+    for c in d:
+        if c not in k:
+            print c
+    print "-----------"
+    for c in k:
+        print c
