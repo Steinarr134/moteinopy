@@ -292,9 +292,9 @@ class Device(object):  # maybe rename this to Node?
         self.Network = network
         self.Name = '' if name is None else name
         self.Translations = dict()
-        self.ReceiveFunction = None
-        self.AckFunction = None
-        self.NoAckFunction = None
+        self.ReceiveFunction = network.receive
+        self.AckFunction = network.ack
+        self.NoAckFunction = network.no_ack
 
     def __str__(self):
         return "Device: " + self.Name + " with id: " + str(self.ID) \
@@ -336,11 +336,11 @@ class Device(object):  # maybe rename this to Node?
             diction = kwargs['diction']
         else:
             diction = dict()
-        for i, a in enumerate(args):
+        for i, arg in enumerate(args):
             part = self.Struct.Parts[i][1]
-            diction[part] = self._translate(part, a)
+            diction[part] = self._translate(part, arg)
 
-        for (key, value) in kwargs.iteritems():
+        for (key, value) in kwargs.items():
             if key in self.Struct.Parts_dict:
                 diction[key] = self._translate(key, value)
 
@@ -418,9 +418,9 @@ class Send2ParentThread(threading.Thread):
 
         sender_id = _hex2dec(self.Incoming[:2])
         if sender_id not in self.Network.devices:
-            print "Something must be wrong because BaseMoteino just recieved a message " \
-                  "from moteino with ID: " + str(sender_id) + " but no such device has " \
-                  "been registered to the network. Btw the raw data was: " + self.Incoming
+            print("Something must be wrong because BaseMoteino just recieved a message "
+                  "from moteino with ID: " + str(sender_id) + " but no such device has "
+                  "been registered to the network. Btw the raw data was: " + self.Incoming)
         else:
             sender = self.Network.devices[sender_id]
             sender.send2parent(self.Incoming[2:])
@@ -643,7 +643,7 @@ class MoteinoNetwork(object):
         :param sender: Device
         :param diction: dict
         """
-        print "MoteinoNetwork received: " + str(diction) + "from" + sender.Name
+        print("MoteinoNetwork received: " + str(diction) + "from" + sender.Name)
 
     def no_ack(self, sender, last_sent_diction):
         """
@@ -651,17 +651,17 @@ class MoteinoNetwork(object):
         :param sender: Device
         :param last_sent_diction: dict
         """
-        print "Oh no! We didn't recieve an ACK from " + sender.Name + " when we sent " + str(last_sent_diction)
+        print("Oh no! We didn't recieve an ACK from " + sender.Name + " when we sent " + str(last_sent_diction))
 
     def ack(self, sender, last_sent_diction):
         """
-        This funcion is totally unnecessary.... mostly for debugging but maybe
-        it will be usefull someday to overwrite this with something
+        This function is totally unnecessary.... mostly for debugging but maybe
+        it will be useful someday to overwrite this with something
         :param sender: Device
         :param last_sent_diction: dict
         """
         if self.print_when_acks_recieved:
-            print sender.Name + " responded with an ack when we sent: " + str(last_sent_diction)
+            print(sender.Name + " responded with an ack when we sent: " + str(last_sent_diction))
 
 
 def a(b):
@@ -669,7 +669,7 @@ def a(b):
     k = b.__dict__.keys()
     for c in d:
         if c not in k:
-            print c
-    print "-----------"
+            print(c)
+    print("-----------")
     for c in k:
-        print c
+        print(c)
