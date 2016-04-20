@@ -1,2 +1,4 @@
 *.pyc
 .idea/
+dist/
+moteinopy.egg-info/
