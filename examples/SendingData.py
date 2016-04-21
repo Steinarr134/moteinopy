@@ -1,4 +1,3 @@
-
 from moteinopy import MoteinoNetwork
 
 """
@@ -26,7 +25,7 @@ class MyNetwork(MoteinoNetwork):
     def __init__(self):
         # Just like all good subclasses it starts by initializing the superclass.
         # Here we'll also pass on the Serial port info
-        MoteinoNetwork.__init__(self, port='COM51', baudrate=115200)
+        MoteinoNetwork.__init__(self, port='COM50', baudrate=115200)
 
     # Here you should start thinking about what you want to do with the network.
     # There are three functions that you might want to overwrite. Those are:
@@ -99,15 +98,18 @@ if __name__ == "__main__":
                              _id=10,  # I had to underscore id to prevent naming conflict :/
                              structstring="int info;" + "int numbers[5];")
 
-        mynetwork.send('TestNode', {'info': 5, 'numbers': [1, 2, 3, 4, 5]})
+        # Now we can send data using the send method, you can for example pass
+        # keyword arguments matching what you defined in the structsring (case sensitive)
+        mynetwork.send('TestNode', info=5, numbers=[1, 2, 3, 4, 5])
 
     elif example == 2:
-        # scenario:     We want to send info=5 and numbers = {1,2,3,4,5} (alternetive)
+        # scenario:     We want to send info=5 and numbers = {1,2,3,4,5} (alternative)
 
         # We can also add to network and get a handle to the node.
         TestNode = mynetwork.add_device('TestNode', 10, "int info;" + "int numbers[5];")
 
-        TestNode.send({'info': 5, 'numbers': [1, 2, 3, 4, 5]})
+        # We can also pass it arguments in the same order as the structstring
+        TestNode.send(5, [1, 2, 3, 4, 5])
 
     elif example == 3:
         # Scenario:     We want to receive some info from TestNode. This means that we
@@ -120,7 +122,7 @@ if __name__ == "__main__":
         # just like send does but then waits for the node to respond. When the node responds
         # this function will return the diction instead of mynetwork calling the receive method
 
-        Response = TestNode.send_and_receive({'info': 123}, max_wait=2000)
+        Response = TestNode.send_and_receive(123, max_wait=2000)
 
         # Btw, you may have noticed that we didn't specify 'numbers'. That is ok, the module will
         # assume that it is zero. We also specified the max wait time (in milliseonds) if this is
