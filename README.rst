@@ -5,8 +5,8 @@ Moteinopy
 ****************************************
 Direct communication from python to node
 ****************************************
- This module was written to handle communication on a moteino network. `Moteinos <http://lowpowerlab.com/moteino>`_
- are great little arduino clones that have an onboard RFM69 which gives them wireless  capabilities. This makes them great for home automation or similar situation.
+This module was written to handle communication on a moteino network. `Moteinos <http://lowpowerlab.com/moteino>`_
+are great little arduino clones that have an onboard RFM69 which gives them wireless  capabilities. This makes them great for home automation or similar situation.
 
 This module assumes a setup of the form:
 
