@@ -18,67 +18,13 @@ must agree on the struct that they will receive.
 """
 
 
-# We start by creating a our own subclass of the MoteinoNetwork. Let's
-# call our class MyNetwork. Notice that you should only make 1 instance
-# of this class.
-class MyNetwork(MoteinoNetwork):
-    def __init__(self):
-        # Just like all good subclasses it starts by initializing the superclass.
-        # Here we'll also pass on the Serial port info
-        MoteinoNetwork.__init__(self, port='COM50', baudrate=115200)
-
-    # Here you should start thinking about what you want to do with the network.
-    # There are three functions that you might want to overwrite. Those are:
-    # receive() - run if something is received from the network
-    # ack()     - run if Base gets an ack after sending something
-    # no_ack()  - run if Base sends something but doesn't receive an ack
-    # These functions will be run in a new thread that you are allowed to hijack.
-    # How cool is that?! (be carefull though. If you make the threads run something
-    # time consuming you could end up with too many threads running and some nasty
-    # stuff might happen, or not.... I'm no expert. But they probably do
-    # implement thread pools for a reason....)
-
-    # Here are those functions as they look by default in the source code:
-
-    def receive(self, sender, diction):
-        """
-        User should overwrite this function
-        :param sender: Device
-        :param diction: dict
-        """
-        print("MoteinoNetwork received: " + str(diction) + " from " + sender.Name)
-
-    def no_ack(self, sender, last_sent_diction):
-        """
-        User might want to overwrite this function
-        :param sender: Device
-        :param last_sent_diction: dict
-        """
-        print("Oh no! We didn't recieve an ACK from " + sender.Name + " when we sent " + str(last_sent_diction))
-
-    def ack(self, sender, last_sent_diction):
-        """
-        This funcion is totally unnecessary.... mostly for debugging but maybe
-        it will be usefull someday to overwrite this with something
-        :param sender: Device
-        :param last_sent_diction: dict
-        """
-        if self.print_when_acks_recieved:
-            print(sender.Name + " responded with an ack when we sent: " + str(last_sent_diction))
-
-
-# Now you might be wandering what those dictions are... diction is my made up name for python's
-# dictionary or dict() datatype. But what do these dictionaries contain you might ask. Well, in
-# the introductary docstring I mentioned that the Moteinos are sending and receiving a struct.
-# Those dictions are the struct that you are expecting from said Moteino in the form of a dict()
-
 if __name__ == "__main__":
 
     # Alright! Now for some interfacing examples. I'll split this into some groubs using if and elif
     # so they can still be run individually.
 
     # First let's instantiate our network:
-    mynetwork = MyNetwork()
+    mynetwork = MoteinoNetwork('COM50')
 
     # For the sake of this example I am imagining a device called TestNode.
     # It is on the network and it has NODEID=10. It is expecting a struct
@@ -90,7 +36,7 @@ if __name__ == "__main__":
 
     example = 1
 
-    if example == 1:
+    if example == 1:  # starting off easy
         # scenario::    We want to send info=5 and numbers = {1,2,3,4,5}
 
         # First we add the device to the network, like so:
@@ -99,10 +45,11 @@ if __name__ == "__main__":
                              structstring="int info;" + "int numbers[5];")
 
         # Now we can send data using the send method, you can for example pass
-        # keyword arguments matching what you defined in the structsring (case sensitive)
+        # keyword arguments matching what you defined in the structstring (case sensitive)
         mynetwork.send('TestNode', info=5, numbers=[1, 2, 3, 4, 5])
 
-    elif example == 2:
+    elif example == 2:  # using the Device class and *args
+
         # scenario:     We want to send info=5 and numbers = {1,2,3,4,5} (alternative)
 
         # We can also add to network and get a handle to the node.
@@ -111,8 +58,8 @@ if __name__ == "__main__":
         # We can also pass it arguments in the same order as the structstring
         TestNode.send(5, [1, 2, 3, 4, 5])
 
-    elif example == 3:
-        # Scenario:     We want to receive some info from TestNode. This means that we
+    elif example == 3:  # using send_and_receive
+        # Scenario:  We want to receive some info from TestNode. This means that we
         # must send it a request and then wait while the Node gathers that info and
         # sends it to us.
 
@@ -122,7 +69,7 @@ if __name__ == "__main__":
         # just like send does but then waits for the node to respond. When the node responds
         # this function will return the diction instead of mynetwork calling the receive method
 
-        Response = TestNode.send_and_receive(123, max_wait=2000)
+        Response = TestNode.send_and_receive(info=123, max_wait=2000)
 
         # Btw, you may have noticed that we didn't specify 'numbers'. That is ok, the module will
         # assume that it is zero. We also specified the max wait time (in milliseonds) if this is
@@ -135,6 +82,19 @@ if __name__ == "__main__":
         else:
             print("It didn't work, we got nothing :(")
 
+    elif example == 4:  # using the translation to make code more readable
+
+        TestNode = mynetwork.add_device('TestNode', 10, "int info;" + "int numbers[5];")
+
+        # The module has a built in translation service, let's redo our example number 3
+        # using the translation service.
+
+        TestNode.add_translation('info', 'SendNumbers', 123)
+
+        # And now we can use :
+        TestNode.send_and_receive(info='SendNumbers', max_wait=2000)
+
+        # The only purpose for this translation service is making your code more readable
 
 #     That's all for now folks, I'll add some more examples if requested
 
