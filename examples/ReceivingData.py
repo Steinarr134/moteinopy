@@ -74,8 +74,8 @@ class MyNetwork(MoteinoNetwork):
 
 
 # Now you might be wandering what those dictions are... diction is my made up name for python's
-# dictionary or dict() datatype. But what do these dictionaries contain you might ask. Well, in
-# the introductary docstring I mentioned that the Moteinos are sending and receiving a struct.
+# dictionary or dict() datatype. But what do these dictionaries contain you might ask.
+# Well, I mentioned that the Moteinos are sending and receiving a struct.
 # Those dictions are the struct that you are expecting from said Moteino in the form of a dict()
 
 
