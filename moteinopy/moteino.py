@@ -317,10 +317,11 @@ class Device(object):  # maybe rename this to Node?
         # print "no translation, just returning value: " + str(value)
         return value
 
-    def add_translation(self, part, key, value):
+    def add_translation(self, part, *args):
         if part not in self.Translations:
             self.Translations[part] = dict()
-        self.Translations[part][key] = value
+        for (key, value) in args:
+            self.Translations[part][key] = value
 
     def send(self, *args, **kwargs):
         """
