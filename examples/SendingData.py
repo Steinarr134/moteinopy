@@ -9,7 +9,7 @@ to Moteinos.
 The setup looks like this:
 
 A PC (or RasPi) running a python script is connected to a BaseMoteino through
-a serial port. That BaseMoteino then releys data to other Moteinos, wherever
+a serial port. That BaseMoteino then relays data to other Moteinos, wherever
 they might be and back.
 
 Those Moteinos should be expecting a struct. (check out the struct examples
@@ -20,7 +20,7 @@ must agree on the struct that they will receive.
 
 if __name__ == "__main__":
 
-    # Alright! Now for some interfacing examples. I'll split this into some groubs using if and elif
+    # Alright! Now for some interfacing examples. I'll split this into some groups using if and elif
     # so they can still be run individually.
 
     # First let's instantiate our network:
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     example = 1
 
     if example == 1:  # starting off easy
-        # scenario::    We want to send info=5 and numbers = {1,2,3,4,5}
+        # scenario:    We want to send info=5 and numbers = {1,2,3,4,5}
 
         # First we add the device to the network, like so:
         mynetwork.add_device(name='TestNode',
@@ -89,12 +89,13 @@ if __name__ == "__main__":
         # The module has a built in translation service, let's redo our example number 3
         # using the translation service.
 
-        TestNode.add_translation('info', 'SendNumbers', 123)
+        TestNode.add_translation('info', ('SendNumbers', 123))
 
         # And now we can use :
         TestNode.send_and_receive(info='SendNumbers', max_wait=2000)
 
         # The only purpose for this translation service is making your code more readable
 
-#     That's all for now folks, I'll add some more examples if requested
+
+# That's all for now folks, I'll add some more examples if requested
 
