@@ -67,15 +67,18 @@ def _hex2dec(s):
 
 class DataType(object):
     pass
+
     # NofBytes = None
+    # ReturnType = None
     #
-    # @staticmethod
-    # def hexprints(data):
+    # def _hexprints(self, i):
     #     pass
     #
-    # @staticmethod
-    # def hex2dec(s):
-    #     pass
+    # def hexprints(self, i=None):
+    #     if type(i) is not self.ReturnType:
+    #         raise ValueError
+    #     else:
+    #         return self._hexprints(i)
 
 
 class Byte(DataType):
@@ -137,6 +140,57 @@ class Int(DataType):
         if i > 32767:
             i -= 32767
         return i
+
+
+class UnsignedLong(DataType):
+    NofBytes = 4
+    ReturnType = int
+
+    @staticmethod
+    def hexprints(i=0):
+        Warning("UnsignedLong is untested code")
+        if type(i) is not int:
+            raise ValueError("UnsingedLong.hexprints expected int but got " + str(type(i)))
+        if not 0 < i < 2**32:
+            raise ValueError("unsignedLong.hexprints expected an int in the range of 0-2^32 but got " + str(i))
+        return (_hexprints(i % 256) + _hexprints((i >> 8) % 256) +
+                _hexprints((i >> 16) % 256) + _hexprints(i >> 24))
+
+    @staticmethod
+    def hex2dec(s):
+        Warning("UnsignedLong is untested code")
+        if len(s) != 8:
+            raise ValueError("UnsignedLong.hex2dec expected string of length 8 but received: " + s)
+        return (_hex2dec(s[6:8]) << 24 + _hex2dec(s[4:6]) << 16 +
+                _hex2dec(s[2:4]) << 8 + _hex2dec(s[:2]))
+
+
+class Long(DataType):
+    MofBytes = 4
+    ReturnType = int
+
+    @staticmethod
+    def hexprints(i=0):
+        Warning("Long is untested code")
+        if type(i) is not int:
+            raise ValueError("Long.hexprints expected int but got " + str(type(i)))
+        if not -2**31 < i < 2**31:
+            raise ValueError("Long.hexprints expected an int in the range of -2^31-2^31 but got " + str(i))
+        if i >= 0:
+            return UnsignedLong.hexprints(i)
+        else:
+            return UnsignedLong.hexprints(i + 2**32)
+
+    @staticmethod
+    def hex2dec(s):
+        Warning("Long is untested code")
+        if len(s) != 8:
+            raise ValueError("Long.hex2dec expected string of length 8 but received: " + s)
+        i = UnsignedLong.hex2dec(s)
+        if i > 2**32:
+            return i - 2**32
+        else:
+            return i
 
 
 class Bool(DataType):
@@ -212,6 +266,8 @@ types = {
     'unsigned int': UnsignedInt,
     'int': Int,
     'bool': Bool,
+    'unsigned long': UnsignedLong,
+    'long': Long,
 }
 
 
