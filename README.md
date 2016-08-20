@@ -10,7 +10,9 @@ This module assumes a setup of the form:
 
 <img src="http://i.imgur.com/Ql9gJXe.png" alt="alternate text" width="300" height="300" />
 
-BaseMoteino should be programmed with the BaseSketch that can be found on the [GitHub] site. Note that you will have to edit it to match your radio settings. I recommend reading through the examples scripts on GitHub to see how to use the module
+BaseMoteino should be programmed with the BaseSketch that can be found on the [GitHub] site. 
+
+I recommend reading through the examples scripts on GitHub to see how to use the module
 
 How to install
 --------------
