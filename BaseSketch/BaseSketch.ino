@@ -12,14 +12,8 @@
 #include <RFM69.h>    
 #include <SPI.h>
 
-// our defines
-#define NODEID        1    // Unique for each node on same network, this is the base and it 
-                           // gets to have the ID of 1  
-#define NETWORKID     7    //the same on all nodes that talk to each other
-//Match frequency to the hardware version of the radio on your Moteino:
-#define FREQUENCY     RF69_433MHZ
-#define ENCRYPTKEY    "HugiBogiHugiBogi" //exactly the same 16 characters/bytes on all nodes!
-#define SERIAL_BAUD   115200
+byte self_id = 0;
+
 RFM69 radio;
 bool promiscuousMode = false; // set to 'true' to sniff all packets on the same network
 
@@ -35,19 +29,77 @@ Payload IncomingData; // Same goes for IncomingData
 
 // In order to do less calculating at runtime i figured i would define a global variable to hold the size
 // (Because this base will always be sending and recieving the same structure)
-byte DataLen = sizeof(OutgoingData);
+byte DataLen = sizeof(OutgoingData); // = 61
 
 byte NoAck = 1;
 
 void setup() 
 { // Setup runs once
-  Serial.begin(SERIAL_BAUD);
+  Serial.begin(115200);
   delay(10);
-  radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  radio.setHighPower(); //only for RFM69HW! (all of ours are HW)
-  radio.encrypt(ENCRYPTKEY);
+  Serial.println("moteinopy basesketch v2.2");
+  byte buff[50] = {0};
+  byte i = 0;
+  bool first_hex_done = false;
+  char first_hex = 0;
+  while (i < 50)
+  {
+    if (Serial.available())
+    {
+      byte in = Serial.read();
+      if (in == '\n')
+      {
+        //Serial.println("newline received");
+        i = 100;
+      }
+      else
+      {
+        if (first_hex_done)
+        {
+          buff[i] = first_hex*16 + hexval(in);
+          i++;
+        }
+        else
+        {
+          first_hex = hexval(in);
+        }
+        first_hex_done = !first_hex_done;
+      }
+    }
+  }
+  typedef struct {
+    byte frequency;
+    byte base_id;
+    byte network_id;
+    bool high_power;
+    char encryption_key[16];
+  } init_struct;
+  init_struct init_info = *(init_struct*)buff;
+//  Serial.print("freq\t");
+//  Serial.print(init_info.frequency);
+//  Serial.print("\t");
+//  Serial.println(RF69_433MHZ);
+//  Serial.print("b_id\t");
+//  Serial.println(init_info.base_id);
+//  Serial.print("n_id\t");
+//  Serial.println(init_info.network_id);
+//  Serial.print("encrypkey\t");
+//  Serial.println(init_info.encryption_key);
+
+  self_id = init_info.base_id;
+  
+  radio.initialize(init_info.frequency, init_info.base_id, init_info.network_id);
+  if (init_info.high_power)
+  {
+      radio.setHighPower(); //only for RFM69HW!
+
+  }
+  radio.encrypt(init_info.encryption_key);
   radio.promiscuous(promiscuousMode);
+  digitalWrite(9, HIGH);
+  delay(25);
   Serial.println("Ready");
+  digitalWrite(9, LOW);
 }
 // Global variables to recieve incoming serial messages
 char FirstHex; // Temp will hold our string that contains the number
@@ -73,6 +125,12 @@ void loop()
       sendTheStuff();
       Send2IDDone = 0;
       Counter = 0;
+    }
+    else if (incoming == 'X')
+    {
+      //Serial.println("RESTART");
+      //delay(50);
+      asm volatile ("  jmp 0");
     }
     else
     {
@@ -155,16 +213,10 @@ void sendTheStuff()
     Serial.print(", ");
   }*/
   bool success = radio.sendWithRetry(Send2ID,(const void*)(&OutgoingData),sizeof(OutgoingData));
-  if (success)
-  {
-    Serial.print("FF");
-    hexprint(Send2ID);
-    Serial.println("01");
-  }
-  else
-  {
-    Serial.print("FF");
-    hexprint(Send2ID);
-    Serial.println("00");
-  }
+  hexprint(self_id);
+  hexprint(Send2ID);
+  hexprint(success);
+  hexprint((byte)(radio.RSSI + 0x7F));
+  Serial.println();
+  
 }

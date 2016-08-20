@@ -1,1 +1,1 @@
-from moteino import MoteinoNetwork, Device, Struct
+from moteinopy.moteino import *

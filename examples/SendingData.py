@@ -1,22 +1,12 @@
+"""
+This script is to intoduce the user to the syntax and:
+
+How do define the nodes
+How to send data
+
+"""
+
 from moteinopy import MoteinoNetwork
-
-"""
-This is a script intended to show the usage of the module called MoteinoBeta
-
-The module is a my way of directly communicating from top level python scripts
-to Moteinos.
-
-The setup looks like this:
-
-A PC (or RasPi) running a python script is connected to a BaseMoteino through
-a serial port. That BaseMoteino then relays data to other Moteinos, wherever
-they might be and back.
-
-Those Moteinos should be expecting a struct. (check out the struct examples
-of the moteino library) As should be expected, this script and the Moteinos
-must agree on the struct that they will receive.
-"""
-
 
 if __name__ == "__main__":
 

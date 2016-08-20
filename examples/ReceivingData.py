@@ -31,7 +31,7 @@ class MyNetwork(MoteinoNetwork):
     def __init__(self):
         # Just like all good subclasses it starts by initializing the superclass.
         # Here we'll also pass on the Serial port info
-        MoteinoNetwork.__init__(self, port='COM50', baudrate=115200)
+        MoteinoNetwork.__init__(self, port='COM50')
 
     # Here you should start thinking about what you want to do with the network.
     # There are three functions that you might want to overwrite. Those are:
@@ -93,10 +93,11 @@ def test_node_receive(diction):
         # you want with it
         print(diction['numbers'])
 
+# and finally we bind it to our TestNode
 TestNode.bind(receive=test_node_receive)
 
 # Now, every time TestNode sends us something, test_node_receive will be run instead of
-# mynetwork.receive
+# mynetwork.receive.
 
 
 
