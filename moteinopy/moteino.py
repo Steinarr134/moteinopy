@@ -46,19 +46,29 @@ class Struct(object):
             incoming = mystruct.decode(str_from_serial)
 
     """
+    _disallowed_partnames = ['block', 'max_wait', 'expect_response', 'diction']
+
     def __init__(self, structstring):
         self.Parts = list()
         self.NofBytes = 0
         self.StructString = structstring
+        self._disect_structstring(structstring)
+
+    def _disect_structstring(self, structstring):
         lines = structstring.rstrip(';').split(';')  # remove the last ';' and split by the other ones
         for line in lines:
             temp = line.rsplit(' ', 1)  # split by whitespaces
             if '[' in temp[1]:  # if we are dealing with an array
                 ttemp = temp[1].split('[')
-                self.Parts.append((Array(types[temp[0]], int(ttemp[1][:-1])), ttemp[0]))
+                _type = Array(types[temp[0].strip()], int(ttemp[1][:-1]))
+                _name = ttemp[0]
             else:
-                self.Parts.append((types[temp[0]], temp[1]))
-
+                _type = types[temp[0].strip()]
+                _name = temp[1]
+            if _name in self._disallowed_partnames:
+                raise ValueError(_name + " is not allowed as a variable name in a struct. ")
+            self.Parts.append((_type, _name))
+        # also store parts as a dict
         self.Parts_dict = dict()
         for (Type, Name) in self.Parts:
             self.Parts_dict[Name] = Type
@@ -104,14 +114,15 @@ class Struct(object):
         return returner
 
 
-class Node(object):  # maybe rename this to Node?
+class Node(object):  # maybe rename this to Node?..... Finally done! :D
 
     def __init__(self, network, _id, structstring, name=None):
         self.ID = _id
         self.Struct = Struct(structstring)
         self.LastSent = dict()
         self.Network = network
-        self.Name = '' if name is None else name
+        self.Name = 'Node-' + str(network.NodeCounter) if name is None else name
+        network.NodeCounter += 1
         self.Translations = dict()
         self.ReceiveFunction = lambda d: network.receive(self, d)
         self.AckFunction = lambda d: network.ack(self, d)
@@ -360,28 +371,8 @@ class MoteinoNetwork(object):
     This is the class that user should inteface with. It is a module that
     ables the user to communicate with moteinos through a top level script.
 
-    Example Usage:
-
-    # Define a subclass MyNetwork
-    class MyNetwork(MoteinoNetwork):
-        def __init__(self):
-            # Initialize superclass and pass information about the Serial port
-            MoteinoNetwork.__init__(self, port='COM50', baudrate=9600)
-
-        # Overwrite the recieve function, put here how you want to
-        def recieve(self, diction):
-            print "We just recieved:"
-            print diction
-            print "from the moteino network"
-
-    # Make an instance of the class we just made
-    mynetwork = MyNetwork()
-    # Define a node on the network
-    mynetwork.add_node('TestNode', 0, "int Command;int Something;")
-    # We can use this to send information.
-    mynetwork.send('TestNode', {'Command': 123, 'Something': 456})
-
     """
+
     RF69_315MHZ = 31
     RF69_433MHZ = 43
     RF69_868MHZ = 86
@@ -413,6 +404,7 @@ class MoteinoNetwork(object):
         self._serial_listening_thread_is_active = False
         self.max_wait = 500
         self.LastReceived = None
+        self.NodeCounter = 0
 
         # Base is technically a node on the network that informs us of wheter or not ACKs are
         # received and hopefully someday the RSSI and such.
