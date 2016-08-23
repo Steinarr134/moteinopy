@@ -423,7 +423,10 @@ class MoteinoNetwork(object):
         time.sleep(0.6)  # sleep  for 0.6 seconds, bootloader uses 0.5 seconds
         logging.debug("Waiting for wakeup sign from base...")
         incoming = self._Serial.readline().rstrip()
-        assert incoming == b"moteinopy basesketch v2.2"
+        if incoming == b"moteinopy basesketch v2.2":
+            raise AssertionError("moteinopy requires the correct BaseSketch to be present on the base"
+                                 "Currently it requires version 2.2, Find the BaseSketch on the"
+                                 "GitHub site: https://github.com/Steinarr134/moteinopy/tree/master/MoteinoSketches")
         logging.debug("... got it, base with " + str(incoming) + " seems to be present, sending operating values...")
         encryption_key_hex = ""
         for x in encryption_key:

@@ -2,11 +2,11 @@
 // for the radio
 #include <RFM69.h>
 #include <SPI.h>
-#define NODEID        11    //unique for each node on same network
-#define NETWORKID     7  //the same on all nodes that talk to each other
+#define NODEID        10    //unique for each node on same network
+#define NETWORKID     1  //the same on all nodes that talk to each other
 #define FREQUENCY     RF69_433MHZ
 #define HIGH_POWER    true
-#define ENCRYPTKEY    "HugiBogiHugiBogi" //exactly the same 16 characters/bytes on all nodes!
+#define ENCRYPTKEY    "0123456789abcdef" //exactly the same 16 characters/bytes on all nodes!
 RFM69 radio;
 bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
@@ -101,8 +101,11 @@ void demo1()
 void sendStatus()
 {
   OutgoingData.Command = Status;
-  OutgoingData.Numbers = {1, 2, 3, 4, 5, 6, 7, 8};
-  OutgoingData.Uptime = millis()
+  for (int i = 0; i < 8; i++)
+  {
+    OutgoingData.Numbers[i] = i*i;
+  }
+  OutgoingData.Uptime = millis();
 
   sendOutgoingData();
 }

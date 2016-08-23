@@ -19,12 +19,12 @@ bool promiscuousMode = false; // set to 'true' to sniff all packets on the same 
 
 
 // Here we are defining "Payload" as a type of struct, in our case it contains an array of 11 ints
-typedef struct{byte N[61]; } Payload; 
+typedef struct{byte N[61]; } Payload;
 
 // and here we define "OutgoingData" as a Payload. Most people are more familiar with seeing something
 // like: "int A" where we define A as an int. In the same way ae are defining OutgoingData as a Payload.
 // Remember we just defined "Payload" as a type of structure.
-Payload OutgoingData;  
+Payload OutgoingData;
 Payload IncomingData; // Same goes for IncomingData
 
 // In order to do less calculating at runtime i figured i would define a global variable to hold the size
@@ -117,8 +117,6 @@ void loop()
   // So, lets first process any serial input:
   if (Serial.available() > 0)
   {
-    // The string will be on the form (Send2ID)#(number1):(number2):    with up to 10 numbers.
-    // every number will be 'terminated' by a ':'
     char incoming = Serial.read(); // reads one char from the buffer
     if (incoming == '\n')
     { // if the line is over
@@ -216,7 +214,7 @@ void sendTheStuff()
   hexprint(self_id);
   hexprint(Send2ID);
   hexprint(success);
-  hexprint((byte)(radio.RSSI + 0x7F));
+  //hexprint((byte)(radio.RSSI + 0x7F));
   Serial.println();
   
 }
