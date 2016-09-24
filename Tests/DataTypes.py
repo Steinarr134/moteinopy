@@ -1,4 +1,4 @@
-from moteinopy.DataTypes import *
+from moteinopyCode.DataTypes import *
 from random import randint as r
 
 
