@@ -259,6 +259,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
 
         self.LastSent = diction
         self.Network.send2base(send2id=self.ID, payload=self.Struct.encode(diction), max_wait=max_wait)
+        return bool(self.Network.AckReceived)  # pass as bool to force a new copy
 
     def send2parent(self, payload):
         """
@@ -296,10 +297,12 @@ class BaseMoteino(Node):
     def send2parent(self, payload):
         d = self.Struct.decode(payload)
         if d['Sender'] not in self.Network.nodes:
-            raise ValueError("Sender not in known nodes")
+            raise ValueError("Sender not in known nodes")  # this should never happen
         sender = self.Network.nodes[d['Sender']]
+        self.Network.AckReceived = d['AckReceived']
         if d['AckReceived']:
             logging.info("Ack received when " + str(sender.LastSent) + " was sent")
+
             if not self.Network.ResponseExpected:
                 self.Network.stop_waiting_for_radio()
             sender.AckFunction(dict(sender.LastSent))
@@ -410,6 +413,7 @@ class MoteinoNetwork(object):
         self._serial_listening_thread_is_active = False
         self.max_wait = 500
         self.LastReceived = None
+        self.AckReceived = False
         self.NodeCounter = 0
         self.GlobalTranslations = dict()
 
