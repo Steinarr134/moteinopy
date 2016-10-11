@@ -6,10 +6,7 @@ from moteinopyCode.DataTypes import types, Array, Byte, Char, Bool
 __author__ = 'SteinarrHrafn'
 
 
-# set logging configuration to DEBUG
-# a python module should not do this but we are still in beta mode
-# logging.basicConfig(level=logging.DEBUG)
-
+# This is so that the code works in both 2.7 and 3.5
 try:
     unicode
 except (NameError, AttributeError):
@@ -34,6 +31,8 @@ class MySerial(object):
 
 
 class FakeSerial(object):
+    # fake Serial port to use for debugging, if the debugger doesn't have one
+    # I recommend using com0com to fake serial ports though.
     def __init__(self):
         pass
 
@@ -358,8 +357,6 @@ class Send2ParentThread(threading.Thread):
         self.Network = network
 
     def run(self):
-        # dprint("Recieved from BaseMoteino:  " + self.Incoming)
-
         # The first byte from the hex string is the sender ID.
         # We use that to get a pointer to the sender (an instance of the Node class)
 
@@ -401,8 +398,9 @@ class ListeningThread(threading.Thread):
             else:
                 incoming.rstrip(b'\n')  # use [:-1]?
                 logging.debug("Serial port said: " + str(incoming))
-                fire = Send2ParentThread(self.Network, incoming)
-                fire.start()
+                Send2ParentThread(self.Network, incoming).start()
+                # fire = Send2ParentThread(self.Network, incoming)
+                # fire.start()
         logging.info("Serial listening thread shutting down")
 
 RF69_315MHZ = 31
@@ -507,6 +505,8 @@ class MoteinoNetwork(object):
         # received and hopefully someday the RSSI and such.
         self.Base = BaseMoteino(self, base_id)
         self._add_node(self.Base)
+        self._BaseReporter = self.add_node(0xFF, "byte rssi; byte temperture;", "_BaseReporter")
+
         self.start_listening()
 
     def _initiate_base(self,
