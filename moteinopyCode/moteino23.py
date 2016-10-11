@@ -252,11 +252,13 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
             what2send = {'a': 100, 'b' = [1, 2, 3, 4, 5, 6, 7, 8]}
             node.send(diction=what2send)
 
-        :return: None
+        :return: bool
         """
         self.Network.ResponseExpected = False
         if 'expect_response' in kwargs:
             self.Network.ResponseExpected = kwargs['expect_response']
+        elif 'response_expected' in kwargs:
+            self.Network.ResponseExpected = kwargs['response_expected']
 
         max_wait = None
         if 'max_wait' in kwargs:
@@ -299,13 +301,12 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         :param payload: string
         :return: None
         """
-        rssi = Byte.hex2dec(payload[:2])
-        d = self.Struct.decode(payload[2:])
+        d = self.Struct.decode(payload)
         logging.info(str(d) + " received from " + str(self))
         d['SenderID'] = self.ID
         d['SenderName'] = self.Name
         d['Sender'] = self
-        d['RSSI'] = rssi
+        d['RSSI'] = int(self.Network.RSSI)
 
         if not self.Network.ReceiveWithSendAndReceive:
             self.Network.stop_waiting_for_radio()
@@ -316,8 +317,16 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
             self.Network.stop_waiting_for_radio()
 
     def send_and_receive(self, *args, **kwargs):
+        """
+        Use this when quering a node for some information.
+        The network and your thread will hang until the node responds.
+        This function will then return the response instead of the network
+        executing the node's receiving function.
+        :return: dict
+        """
         self.Network.ReceiveWithSendAndReceive = True
         temp = id(self.Network.LastReceived)
+        kwargs['expect_response'] = True
         self.send(*args, **kwargs)
         if id(self.Network.LastReceived) != temp:
             return self.Network.LastReceived
@@ -573,7 +582,7 @@ class MoteinoNetwork(object):
                 and cause lost data.
             2 - It is preferable that nodes on the network act mostly
                 like slaves, that is, don't talk much unless asked to.
-                Most tyoes of information should therefore be requested
+                Most types of information should therefore be requested
                 by the master (the users python script). In this case
                 the user should call mynetwork.send() with expect_response
                 as True. This will cause the module to wait until it
