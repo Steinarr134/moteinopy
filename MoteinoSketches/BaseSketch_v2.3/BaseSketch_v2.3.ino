@@ -16,13 +16,14 @@
                 ack_requested - whether we want an ack back or not
                 retries - amount of retries
                 struct - the data to be sent
-  base responds with:
+  if ack_requested: base responds with:
       (baseID)(send2id)(ack_received)(rssi)
       meaning:
                 baseID - too indicate that we are not receiving anything but rather reporting back
                 rssi - the rssi measured during ack reception
                 send2id - whom we sent to
                 ack_received - if we received an ack or not
+
 
   when something is received we send (through the serial port):
       (senderID)(send2id)(rssi)(struct)
@@ -59,12 +60,14 @@ byte SerialBuffer[63];
 
 typedef struct {
   byte sender;
+  byte send2
   byte rssi;
 } RadioStruct;
 
 typedef struct {
   byte send2id;
   bool ack_requested;
+  byte retries;
   byte buffer[61];
 } SerialStruct;
 
@@ -145,7 +148,7 @@ void setup()
   {
     radio.encrypt(init_info.encryption_key);
   }
-  radio.promiscuous(promiscuousMode);
+  radio.promiscuous(init_info.promiscous_mode);
   digitalWrite(9, HIGH);
   delay(25);
   Serial.println("Ready");
@@ -230,7 +233,7 @@ void checkOnRadio()
     // send the ACK because the radio.DATA cache will be overwritten when sending the ACK.
     RadioBuffer = *(Payload*)radio.DATA;
     r.sender = radio.SENDERID;
-    //r.send2 = radio.TARGETID;
+    r.send2 = radio.TARGETID;
     r.rssi = rssi();
     //datalen = radio.DATALEN;
     if (radio.ACKRequested())
@@ -245,7 +248,7 @@ void printTheStuff()
 {
   //Serial.println("printing the stuff.");
   hexprint(r.sender);
-  //hexprint(r.send2);
+  hexprint(r.send2);
   hexprint(r.rssi);
   for (int i = 0; i < 61; i++)
   {
@@ -267,7 +270,7 @@ void sendTheStuff()
   
   if (s.ack_requested)
   {
-    bool success = radio.sendWithRetry(s.send2id, (const void*)(&s.buffer), SerialBufferLen - 2);
+    bool success = radio.sendWithRetry(s.send2id, (const void*)(&s.buffer), SerialCounter - 3, s.retries);
     hexprint(self_id);
     hexprint(s.send2id);
     hexprint(success);
@@ -292,8 +295,9 @@ void printStatus()
 
   print_status_struct.temp = (int)radio.readTemperature(0);
   print_status_struct.rssi = radio.readRSSI();
-  byte b[6] = {0};
+  byte b[4] = {0};
   memcpy(b, (const void*)&print_status_struct, sizeof(print_status_struct));
+  Serial.print("FF")
   for (int i = 0; i < sizeof(print_status_struct); i++)
   {
     hexprint(b[i]);
