@@ -17,7 +17,7 @@
                 retries - amount of retries
                 struct - the data to be sent
   base responds with:
-      (baseID)(Command)(rssi)(send2id)(ack_received)
+      (baseID)(rssi)(send2id)(ack_received)
       meaning:
                 baseID - too indicate that we are not receiving anything but rather reporting back
                 rssi - the rssi measured during ack reception
@@ -25,9 +25,10 @@
                 ack_received - if we received an ack or not
 
   when something is received we send (through the serial port):
-      (senderID)(rssi)(struct)
+      (senderID)(send2id)(rssi)(struct)
       meaning:
                 senderID - who sent this
+                send2id - who ws supposed to receive this
                 rssi - the rssi measured during reception
                 struct - the data received
 
@@ -36,7 +37,7 @@
       (baseID)
 
   and the base will respond with:
-      (baseID)(0xFF)(rssi)(temperature)
+      (0xFF)(rssi)(temperature)
 
       to begin with
 */
