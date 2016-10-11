@@ -254,15 +254,13 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
 
         :return: None
         """
+        self.Network.ResponseExpected = False
         if 'expect_response' in kwargs:
             self.Network.ResponseExpected = kwargs['expect_response']
-        else:
-            self.Network.ResponseExpected = False
 
+        max_wait = None
         if 'max_wait' in kwargs:
             max_wait = kwargs['max_wait']
-        else:
-            max_wait = None
 
         request_ack = True
         if 'request_ack' in kwargs:
@@ -270,10 +268,13 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         elif 'ack_requested' in kwargs:
             request_ack = kwargs['ack_requested']
 
+        diction = dict()
         if 'diction' in kwargs:
             diction = kwargs['diction']
-        else:
-            diction = dict()
+
+        retries = 5
+        if 'retries' in kwargs:
+            retries = kwargs['retries']
 
         for i, arg in enumerate(args):
             part = self.Struct.Parts[i][1]
@@ -288,7 +289,9 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         self.LastSent = diction
         self.Network.send2base(send2id=self.ID,
                                request_ack=request_ack,
-                               payload=self.Struct.encode(diction), max_wait=max_wait)
+                               retries=retries,
+                               payload=self.Struct.encode(diction),
+                               max_wait=max_wait)
         return bool(self.Network.AckReceived)  # pass as bool to force a new copy
 
     def send2parent(self, payload):
@@ -324,13 +327,13 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
 
 class BaseMoteino(Node):
     def __init__(self, network, _id):
-        Node.__init__(self, network, _id, "byte Sender;bool AckReceived;byte RSSI;", 'BaseMoteino')
+        Node.__init__(self, network, _id, "byte send2id;bool AckReceived;byte RSSI;", 'BaseMoteino')
 
     def send2parent(self, payload):
         d = self.Struct.decode(payload)
-        if d['Sender'] not in self.Network.nodes:
-            raise ValueError("Sender not in known nodes")  # this should never happen
-        sender = self.Network.nodes[d['Sender']]
+        if d['send2id'] not in self.Network.nodes:
+            raise ValueError("send2id not in known nodes")  # this should never happen
+        sender = self.Network.nodes[d['send2id']]
         self.Network.AckReceived = d['AckReceived']
         self.Network.RSSI = d['RSSI']
         if d['AckReceived']:
@@ -361,13 +364,24 @@ class Send2ParentThread(threading.Thread):
         # We use that to get a pointer to the sender (an instance of the Node class)
 
         sender_id = Byte.hex2dec(self.Incoming[:2])
-        if sender_id not in self.Network.nodes:
+
+        if sender_id == 0xFF:
+            # Special case for basereporter
+            self.Network.nodes[sender_id].send2parent(self.Incoming[2:])
+
+        elif self.Network.PromiscousMode:
+            # Promiscous mode will just print all info
+            print("A Node with ID=" + str(sender_id) + " sent: " + self.Incoming[6:] + " to ID=" +
+                  "" + str(Byte.hex2dec(self.Incoming[2:4])) + ", rssi=" + str(Byte.hex(self.Incoming[4:6])))
+
+        elif sender_id not in self.Network.nodes:
             logging.warning("Something must be wrong because BaseMoteino just recieved a message "
                             "from moteino with ID: " + str(sender_id) + " but no such node has "
                             "been registered to the network. Btw the raw data was: " + self.Incoming)
         else:
-            sender = self.Network.nodes[sender_id]
-            sender.send2parent(self.Incoming[2:])
+            # send2id is at self.Incoming[2:4] but whould always be BaseID here.
+            self.Network.RSSI = Byte.hex2dec(self.Incoming[4:6])
+            self.Network.nodes[sender_id].send2parent(self.Incoming[6:])
 
 
 class ListeningThread(threading.Thread):
@@ -454,8 +468,9 @@ class MoteinoNetwork(object):
                  frequency=RF69_433MHZ,
                  high_power=True,
                  network_id=1,
-                 base_id=1,
                  encryption_key='',
+                 base_id=1,
+                 promiscous_mode=False,
                  init_base=True):
         """
 
@@ -476,9 +491,9 @@ class MoteinoNetwork(object):
             self._Serial = MySerial(port=port, baudrate=115200)
 
         if init_base:
-            self._initiate_base(frequency, high_power, network_id, base_id, encryption_key)
+            self._initiate_base(frequency, high_power, network_id, base_id, encryption_key, promiscous_mode)
         else:
-            logging.debug("Initialisation of base skipped")
+            logging.info("Initialisation of base skipped")
 
         # threading objects
         self._SerialLock = threading.Lock()
@@ -488,6 +503,7 @@ class MoteinoNetwork(object):
         self.ReceiveWithSendAndReceive = False
         self.print_when_acks_recieved = False
         self._network_is_shutting_down = False
+        self.PromiscousMode = promiscous_mode
 
         # Network attributes
         self.nodes = dict()
@@ -514,7 +530,8 @@ class MoteinoNetwork(object):
                        high_power=True,
                        network_id=1,
                        base_id=1,
-                       encryption_key="0123456789abcdef"):
+                       encryption_key="0123456789abcdef",
+                       promiscous_mode=False):
 
         self._Serial.write('X')     # send reset sign
         logging.debug("Restarting base")
@@ -534,8 +551,9 @@ class MoteinoNetwork(object):
         self._Serial.write(Byte.hex(frequency) +
                            Byte.hex(base_id) +
                            Byte.hex(network_id) +
-                           Byte.hex(high_power) +
-                           encryption_key_hex + "\n")
+                           Bool.hex(high_power) +
+                           encryption_key_hex +
+                           Bool.hex(promiscous_mode) + "\n")
         logging.debug("waiting for ready sign from base...")
         incoming = self._Serial.readline().rstrip()
         assert incoming == b"Ready"
@@ -577,17 +595,18 @@ class MoteinoNetwork(object):
         """
         self._WaitForRadioEvent.set()
 
-    def send2base(self, send2id, request_ack, payload, max_wait=None):
+    def send2base(self, send2id, request_ack, retries, payload, max_wait=None):
         """
         To prevent multiple threads from printing to the Serial port at the same time
         all printing is done through this function and using the threading.Lock() module
         :param send2id: int
         :param request_ack: bool
+        :param retries: int
         :param payload: str
         :param max_wait: int
         """
         with self._SerialLock:
-            sendstr = Byte.hex(send2id) + Bool.hex(request_ack) + payload
+            sendstr = Byte.hex(send2id) + Bool.hex(request_ack) + Byte.hex(retries) + payload
             self._Serial.write(sendstr + '\n')
             logging.debug("sent: " + sendstr + "   to the serial port")
             self._WaitForRadioEvent.clear()
@@ -601,7 +620,7 @@ class MoteinoNetwork(object):
             self.GlobalTranslations[part].append(arg)
 
         for node in self.nodes_list:
-            if node is not self.BaseMoteino:
+            if node is not self.Base:
                 node.add_translation(part, *args)
         logging.debug("Global translation {t} added regarding {part}".format(t=args, part=part))
 

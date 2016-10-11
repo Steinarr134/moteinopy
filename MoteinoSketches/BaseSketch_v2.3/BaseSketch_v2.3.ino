@@ -17,7 +17,7 @@
                 retries - amount of retries
                 struct - the data to be sent
   base responds with:
-      (baseID)(rssi)(send2id)(ack_received)
+      (baseID)(send2id)(ack_received)(rssi)
       meaning:
                 baseID - too indicate that we are not receiving anything but rather reporting back
                 rssi - the rssi measured during ack reception
@@ -49,7 +49,6 @@
 #include <SPI.h>
 byte self_id = 0xff; // default but changable through python
 RFM69 radio;
-bool promiscuousMode = true; // set to 'true' to sniff all packets on the same network
 
 // Incoming and Outgoing buffers:
 typedef struct {
@@ -112,6 +111,7 @@ void setup()
     byte network_id;
     bool high_power;
     char encryption_key[16];
+    bool promiscous_mode;
   } init_struct;
   init_struct init_info = *(init_struct*)buff;
   //  Serial.print("freq\t");
