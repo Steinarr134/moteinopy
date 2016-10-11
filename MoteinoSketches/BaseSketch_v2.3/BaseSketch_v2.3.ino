@@ -7,6 +7,42 @@
 
 // Written by Steinarr
 ////////////////////////////////////////////////////////////////////////////////////////////
+/*
+
+  When PC wants to send something it sends (through the serial port):
+      (send2id)(ack_requested)(retries)(struct)
+      meaning:
+                send2id - to whom should this be sent
+                ack_requested - whether we want an ack back or not
+                retries - amount of retries
+                struct - the data to be sent
+  base responds with:
+      (baseID)(Command)(rssi)(send2id)(ack_received)
+      meaning:
+                baseID - too indicate that we are not receiving anything but rather reporting back
+                rssi - the rssi measured during ack reception
+                send2id - whom we sent to
+                ack_received - if we received an ack or not
+
+  when something is received we send (through the serial port):
+      (senderID)(rssi)(struct)
+      meaning:
+                senderID - who sent this
+                rssi - the rssi measured during reception
+                struct - the data received
+
+
+  when the PC wants some info from the base it sends:
+      (baseID)
+
+  and the base will respond with:
+      (baseID)(0xFF)(rssi)(temperature)
+
+      to begin with
+*/
+
+
+
 
 #include <RFM69.h>
 #include <SPI.h>
@@ -15,23 +51,24 @@ RFM69 radio;
 bool promiscuousMode = true; // set to 'true' to sniff all packets on the same network
 
 // Incoming and Outgoing buffers:
-typedef struct {byte x[61];} Payload;
+typedef struct {
+  byte x[61];
+} Payload;
 Payload RadioBuffer;
 byte SerialBuffer[63];
 
-typedef struct{
+typedef struct {
   byte sender;
-  byte send2;
   byte rssi;
 } RadioStruct;
 
-typedef struct{
+typedef struct {
   byte send2id;
   bool ack_requested;
   byte buffer[61];
 } SerialStruct;
 
-SerialStruct s;
+//SerialStruct s;
 RadioStruct r;
 
 void setup()
@@ -51,13 +88,13 @@ void setup()
       if (in == '\n')
       {
         //Serial.println("newline received");
-        i = 100;
+        break;
       }
       else
       {
         if (first_hex_done)
         {
-          buff[i] = first_hex*16 + hexval(in);
+          buff[i] = first_hex * 16 + hexval(in);
           i++;
         }
         else
@@ -76,25 +113,37 @@ void setup()
     char encryption_key[16];
   } init_struct;
   init_struct init_info = *(init_struct*)buff;
-//  Serial.print("freq\t");
-//  Serial.print(init_info.frequency);
-//  Serial.print("\t");
-//  Serial.println(RF69_433MHZ);
-//  Serial.print("b_id\t");
-//  Serial.println(init_info.base_id);
-//  Serial.print("n_id\t");
-//  Serial.println(init_info.network_id);
-//  Serial.print("encrypkey\t");
-//  Serial.println(init_info.encryption_key);
+  //  Serial.print("freq\t");
+  //  Serial.print(init_info.frequency);
+  //  Serial.print("\t");
+  //  Serial.println(RF69_433MHZ);
+  //  Serial.print("b_id\t");
+  //  Serial.println(init_info.base_id);
+  //  Serial.print("n_id\t");
+  //  Serial.println(init_info.network_id);
+  //  Serial.print("encrypkey\t");
+  //  Serial.println(init_info.encryption_key);
 
   self_id = init_info.base_id;
+
+  bool encrypt_key_is_empty = true;
+  for (int i = 0; i < 16; i++)
+  {
+    if (init_info.encryption_key[i] != 0)
+    {
+      encrypt_key_is_empty = false;
+    }
+  }
 
   radio.initialize(init_info.frequency, init_info.base_id, init_info.network_id);
   if (init_info.high_power)
   {
-      radio.setHighPower(); //only for RFM69HW!
+    radio.setHighPower(); //only for RFM69HW!
   }
-  radio.encrypt(init_info.encryption_key);
+  if (!encrypt_key_is_empty)
+  {
+    radio.encrypt(init_info.encryption_key);
+  }
   radio.promiscuous(promiscuousMode);
   digitalWrite(9, HIGH);
   delay(25);
@@ -110,9 +159,9 @@ byte datalen = 0;
 
 
 void loop()
-{  //loop runs over and over forever
-   // we want to do 2 thing at once, Listen to the Serial port and the radio. We can't
-   // actually do both at the 'same' time but we can do one and then the other, extremely fast.
+{ //loop runs over and over forever
+  // we want to do 2 thing at once, Listen to the Serial port and the radio. We can't
+  // actually do both at the 'same' time but we can do one and then the other, extremely fast.
 
   // So, lets first process any serial input:
   checkOnSerial();
@@ -125,13 +174,27 @@ void loop()
 
 void checkOnSerial()
 {
-if (Serial.available() > 0)
+  if (Serial.available() > 0)
   {
     char incoming = Serial.read(); // reads one char from the buffer
     if (incoming == '\n')
     { // if the line is over
-      sendTheStuff();
-      SerialBufferLen = SerialCounter;
+      //Serial.println(SerialCounter);
+      //for (int i = 0; i<SerialCounter; i++)
+      //{
+      //  Serial.print(SerialBuffer[i]);
+      //  Serial.print(" ");
+      //}
+      //Serial.println();
+      //delay(25);
+      if ((SerialCounter == 1) && (SerialBuffer[0] == self_id))
+      {
+        printStatus();
+      }
+      else
+      {
+        sendTheStuff();
+      }
       SerialCounter = 0;
     }
     else if (incoming == 'X')
@@ -146,7 +209,7 @@ if (Serial.available() > 0)
       if (FirstHexDone)
       {
         FirstHexDone = false;
-        SerialBuffer[SerialCounter] = (FirstHex<<4) & hexval(incoming);
+        SerialBuffer[SerialCounter] = (FirstHex << 4) | hexval(incoming);
         SerialCounter++;
       }
       else
@@ -166,9 +229,9 @@ void checkOnRadio()
     // send the ACK because the radio.DATA cache will be overwritten when sending the ACK.
     RadioBuffer = *(Payload*)radio.DATA;
     r.sender = radio.SENDERID;
-    r.send2 = radio.TARGETID;
+    //r.send2 = radio.TARGETID;
     r.rssi = rssi();
-    datalen = radio.DATALEN;
+    //datalen = radio.DATALEN;
     if (radio.ACKRequested())
     {
       radio.sendACK();
@@ -179,11 +242,11 @@ void checkOnRadio()
 
 void printTheStuff()
 {
-  hexprint(self_id);
+  //Serial.println("printing the stuff.");
   hexprint(r.sender);
-  hexprint(r.send2);
+  //hexprint(r.send2);
   hexprint(r.rssi);
-  for (int i = 0; i < datalen, i++;)
+  for (int i = 0; i < 61; i++)
   {
     hexprint(RadioBuffer.x[i]);
   }
@@ -194,9 +257,16 @@ void sendTheStuff()
 {
   SerialStruct s = *(SerialStruct*)(SerialBuffer);
 
+  //Serial.print("sending to: ");
+  //Serial.println(s.send2id);
+  //if (s.ack_requested)
+  //{
+  //  Serial.println("Ack requeested");
+  //}
+  
   if (s.ack_requested)
   {
-    bool success = radio.sendWithRetry(s.send2id,(const void*)(&s.buffer), SerialBufferLen-2);
+    bool success = radio.sendWithRetry(s.send2id, (const void*)(&s.buffer), SerialBufferLen - 2);
     hexprint(self_id);
     hexprint(s.send2id);
     hexprint(success);
@@ -205,11 +275,30 @@ void sendTheStuff()
   }
   else
   {
-    radio.send(s.send2id,(const void*)(&s.buffer),sizeof(s.buffer));
+    radio.send(s.send2id, (const void*)(&s.buffer), sizeof(s.buffer));
   }
 }
 
 
+typedef struct {
+  int temp;
+  int rssi;
+} PrintStatusStruct;
+PrintStatusStruct print_status_struct;
+
+void printStatus()
+{
+
+  print_status_struct.temp = (int)radio.readTemperature(0);
+  print_status_struct.rssi = radio.readRSSI();
+  byte b[6] = {0};
+  memcpy(b, (const void*)&print_status_struct, sizeof(print_status_struct));
+  for (int i = 0; i < sizeof(print_status_struct); i++)
+  {
+    hexprint(b[i]);
+  }
+  Serial.println();
+}
 
 byte rssi()
 {
@@ -218,7 +307,7 @@ byte rssi()
 
 void hexprint(byte b)
 {
-  if (b<16)
+  if (b < 16)
   {
     Serial.print('0');
   }
