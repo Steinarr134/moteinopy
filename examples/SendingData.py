@@ -30,9 +30,9 @@ if __name__ == "__main__":
         # scenario:    We want to send info=5 and numbers = {1,2,3,4,5}
 
         # First we add the device to the network, like so:
-        mynetwork.add_device(name='TestNode',
-                             _id=10,  # I had to underscore id to prevent naming conflict :/
-                             structstring="int info;" + "int numbers[5];")
+        mynetwork.add_node(name='TestNode',
+                           _id=10,  # I had to underscore id to prevent naming conflict :/
+                           structstring="int info;" + "int numbers[5];")
 
         # Now we can send data using the send method, you can for example pass
         # keyword arguments matching what you defined in the structstring (case sensitive)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
         # scenario:     We want to send info=5 and numbers = {1,2,3,4,5} (alternative)
 
         # We can also add to network and get a handle to the node.
-        TestNode = mynetwork.add_device('TestNode', 10, "int info;" + "int numbers[5];")
+        TestNode = mynetwork.add_node('TestNode', 10, "int info;" + "int numbers[5];")
 
         # We can also pass it arguments in the same order as the structstring
         TestNode.send(5, [1, 2, 3, 4, 5])
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         # must send it a request and then wait while the Node gathers that info and
         # sends it to us.
 
-        TestNode = mynetwork.add_device('TestNode', 10, "int info;" + "int numbers[5];")
+        TestNode = mynetwork.add_node('TestNode', 10, "int info;" + "int numbers[5];")
 
         # For this we can use the send_and_receive function. This function sends the data
         # just like send does but then waits for the node to respond. When the node responds
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
     elif example == 4:  # using the translation to make code more readable
 
-        TestNode = mynetwork.add_device('TestNode', 10, "int info;" + "int numbers[5];")
+        TestNode = mynetwork.add_node('TestNode', 10, "int info;" + "int numbers[5];")
 
         # The module has a built in translation service, let's redo our example number 3
         # using the translation service.

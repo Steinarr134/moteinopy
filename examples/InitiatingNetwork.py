@@ -30,5 +30,7 @@ mynetwork = MoteinoNetwork(port='COM50',
                            base_id=1,
                            encryption_key='0123456789ABCDEF')
 
+
+
 # Those are the default values but selecting other ones is pretty straight forward
 

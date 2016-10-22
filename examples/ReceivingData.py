@@ -81,7 +81,7 @@ class MyNetwork(MoteinoNetwork):
 
 # First up, instantiate your network and define our TestNode
 mynetwork = MyNetwork()
-TestNode = mynetwork.add_device('TestNode', 10, "int info;" + "int numbers[5];")
+TestNode = mynetwork.add_node('TestNode', 10, "int info;" + "int numbers[5];")
 
 # By default, If a node sends something the MoteinoNetwork.receive function will be called but
 # we can also define a new function for each node:

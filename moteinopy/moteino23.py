@@ -669,7 +669,7 @@ class MoteinoNetwork(object):
         for part, args in self.GlobalTranslations.items():
             node.add_translation(part, *args)
 
-    def add_node(self, _id, structstring, name=''):
+    def add_node(self, _id, structstring, name=None):
         """
         This function defines a node on the network
         :param name: str
