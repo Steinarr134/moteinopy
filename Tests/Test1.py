@@ -1,5 +1,5 @@
 import logging
-from moteinopyCode import MoteinoNetwork
+from moteinopy import MoteinoNetwork
 import serial
 import threading
 import time

@@ -1,4 +1,4 @@
-from moteinopyCode import MoteinoNetwork23 as MN
+from moteinopy import MoteinoNetwork23 as MN
 import logging
 
 logging.basicConfig(level=logging.DEBUG)

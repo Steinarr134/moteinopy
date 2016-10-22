@@ -1,4 +1,4 @@
-from moteinopyCode import MoteinoNetwork
+from moteinopy import MoteinoNetwork
 import logging
 from time import sleep
 

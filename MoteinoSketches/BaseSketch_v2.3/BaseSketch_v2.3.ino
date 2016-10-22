@@ -60,7 +60,7 @@ byte SerialBuffer[63];
 
 typedef struct {
   byte sender;
-  byte send2
+  byte send2;
   byte rssi;
 } RadioStruct;
 
@@ -285,20 +285,20 @@ void sendTheStuff()
 
 
 typedef struct {
-  int temp;
   int rssi;
+  int temp;
 } PrintStatusStruct;
 PrintStatusStruct print_status_struct;
 
 void printStatus()
 {
-
+  //Serial.print("X");
   print_status_struct.temp = (int)radio.readTemperature(0);
   print_status_struct.rssi = radio.readRSSI();
   byte b[4] = {0};
-  memcpy(b, (const void*)&print_status_struct, sizeof(print_status_struct));
-  Serial.print("FF")
-  for (int i = 0; i < sizeof(print_status_struct); i++)
+  memcpy(b, (const void*)&print_status_struct, 4);
+  Serial.print("FF");
+  for (int i = 0; i < 4; i++)
   {
     hexprint(b[i]);
   }

@@ -1,4 +1,4 @@
-from moteinopyCode import MoteinoNetwork23 as MoteinoNetwork
+from moteinopy import MoteinoNetwork
 import logging
 from time import sleep
 
@@ -22,3 +22,4 @@ mynetwork = MoteinoNetwork('COM11', encryption_key="HugiBogiHugiBogi")
 
 sleep(1)
 print("done")
+
