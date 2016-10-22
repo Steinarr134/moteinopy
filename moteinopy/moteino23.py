@@ -393,7 +393,7 @@ class Send2ParentThread(threading.Thread):
 
         if sender_id == 0xFF:
             # Special case for basereporter
-            self.Network.nodes[sender_id].send2parent(self.Incoming[2:])
+            self.Network.BaseReporter.send2parent(self.Incoming[2:])
 
         elif self.Network.PromiscousMode:
             # Promiscous mode will just print all info
@@ -404,6 +404,8 @@ class Send2ParentThread(threading.Thread):
             logging.warning("Something must be wrong because BaseMoteino just recieved a message "
                             "from moteino with ID: " + str(sender_id) + " but no such node has "
                             "been registered to the network. Btw the raw data was: " + str(self.Incoming))
+        elif sender_id == self.Network.Base.ID:
+            self.Network.Base.send2parent(self.Incoming[2:])
         else:
             # send2id is at self.Incoming[2:4] but whould always be BaseID here.
             self.Network.RSSI = Byte.hex2dec(self.Incoming[4:6])
@@ -429,18 +431,15 @@ class ListeningThread(threading.Thread):
         logging.debug("Serial listening thread started")
         while True:
             try:
-                incoming = self.Listen2.readline()
+                incoming = self.Listen2.readline().rstrip()  # use [:-1]?
             except serial.SerialException as e:
                 if not self.Stop:
                     logging.warning("serial exception ocurred: " + str(e))
             if self.Stop:
                 break
             else:
-                incoming.rstrip(b'\n')  # use [:-1]?
                 logging.debug("Serial port said: " + str(incoming))
                 Send2ParentThread(self.Network, incoming).start()
-                # fire = Send2ParentThread(self.Network, incoming)
-                # fire.start()
         logging.info("Serial listening thread shutting down")
 
 RF69_315MHZ = 31
@@ -547,7 +546,7 @@ class MoteinoNetwork(object):
         # received and hopefully someday the RSSI and such.
         self.Base = BaseMoteino(self, base_id)
         self._add_node(self.Base)
-        self._BaseReporter = self.add_node(0xFF, "int rssi; int temperature;", "_BaseReporter")
+        self.BaseReporter = Node(self, 0xFF, "int rssi; int temperature;", "_BaseReporter")
 
         self.start_listening()
 
