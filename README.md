@@ -19,9 +19,9 @@ How to install
 
 Just use `pip install moteinopy` for the python module
 
-Then go to the [GitHub] repository, under MoteinoSketches get the BaseSketch_v2.2.ino, download it and upload to your BaseMoteino using the arduino IDE.
+Then go to the [GitHub] repository, under MoteinoSketches get the BaseSketch_v2.3.ino, download it and upload to your BaseMoteino using the arduino IDE.
 
-You can check that it is working by opening the serial monitor (set it to 115200 baudrate) and the base should print 'moteinopy basesketch v_2.2' on startup. 
+You can check that it is working by opening the serial monitor (set it to 115200 baudrate) and the base should print 'moteinopy basesketch v_2.3' on startup. 
 
 Getting started
 ---------------
