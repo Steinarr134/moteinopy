@@ -40,7 +40,7 @@ class FakeSerial(object):
         pass
 
     def readline(self):
-        pass
+        time.sleep(100000)
 
     def isOpen(self):
         pass
@@ -301,8 +301,13 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         :param payload: string
         :return: None
         """
-        d = self.Struct.decode(payload)
-        logging.info(str(d) + " received from " + str(self))
+        _d = self.Struct.decode(payload)
+        logging.info(str(_d) + " received from " + str(self))
+
+        d = dict()
+        for part, key in list(_d.items()):
+            d[part] = self._translate(part, key)
+
         d['SenderID'] = self.ID
         d['SenderName'] = self.Name
         d['Sender'] = self
@@ -665,7 +670,7 @@ class MoteinoNetwork(object):
         self.nodes_list.append(node)
         logging.info(str(node) + " added to the network.")
 
-        for part, args in self.GlobalTranslations.items():
+        for part, args in list(self.GlobalTranslations.items()):
             node.add_translation(part, *args)
 
     def add_node(self, _id, structstring, name=None):
@@ -744,7 +749,7 @@ class MoteinoNetwork(object):
         :param sender: Node
         :param diction: dict
         """
-        print("MoteinoNetwork received: " + str(diction) + "from" + sender.Name)
+        print("MoteinoNetwork received: " + str(diction) + " from " + sender.Name)
 
     def no_ack(self, sender, last_sent_diction):
         """
