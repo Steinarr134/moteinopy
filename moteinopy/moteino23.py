@@ -47,16 +47,20 @@ class FakeSerial(object):
     # fake Serial port to use for debugging, if the debugger doesn't have one
     # I recommend using com0com to fake serial ports though.
     def __init__(self):
-        pass
+        self.E = threading.Event()
+        self.S = ""
 
     def read(self):
         pass
 
     def readline(self):
-        time.sleep(100000)
+        self.E.wait()
+        time.sleep(0.05)
+        self.E.clear()
+        return str(self.S)
 
     def isOpen(self):
-        pass
+        return True
 
     def open(self):
         pass
@@ -64,8 +68,9 @@ class FakeSerial(object):
     def close(self):
         pass
 
-    def write(self):
-        pass
+    def write(self, s):
+        self.S = s
+        self.E.set()
 
 
 class Struct(object):
@@ -162,9 +167,9 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         self.Network = network
         self.Name = 'Node-' + str(self.ID) if name is None else name
         self.Translations = dict()
-        self.ReceiveFunction = lambda d: network.receive(self, d)
-        self.AckFunction = lambda d: network.ack(self, d)
-        self.NoAckFunction = lambda d: network.no_ack(self, d)
+        self.ReceiveFunction = lambda d: network.ReceiveFunction(d)
+        self.AckFunction = lambda d: network.AckFunction(d)
+        self.NoAckFunction = lambda d: network.NoAckFunction(d)
 
     def __str__(self):
         return "Node(" + self.Name + ") with id(" + str(self.ID) \
@@ -363,7 +368,7 @@ class BaseMoteino(Node):
         :param _id: int
         :return:
         """
-        Node.__init__(self, network, _id, "byte send2id;bool AckReceived;byte RSSI;", 'BaseMoteino')
+        Node.__init__(self, network, _id, "byte send2id;bool AckReceived;byte rssi;", 'BaseMoteino')
 
     def send2parent(self, payload):
         d = self.Struct.decode(payload)
@@ -371,7 +376,7 @@ class BaseMoteino(Node):
             raise ValueError("send2id not in known nodes")  # this should never happen
         sender = self.Network.nodes[d['send2id']]
         self.Network.AckReceived = d['AckReceived']
-        self.Network.RSSI = d['RSSI']
+        self.Network.RSSI = d['rssi']
         if d['AckReceived']:
             logging.info("Ack received when " + str(sender.LastSent) + " was sent")
 
@@ -469,6 +474,33 @@ RF69_868MHZ = 86
 RF69_915MHZ = 91
 
 
+def default_receive(diction):
+    """
+    The default fucntion called when network receives something
+    :param diction: dict
+    """
+    print("MoteinoNetwork received: " + str(diction) + " from " + diction['SenderName'])
+
+
+def default_no_ack(last_sent_diction):
+    """
+    The default fucntion called when network receives no ack after sending something
+    :param last_sent_diction: dict
+    """
+    sender = last_sent_diction['Sender']
+    print("Oh no! We didn't recieve an ACK from " + sender.Name + " when we sent " + str(last_sent_diction))
+
+
+def default_ack(last_sent_diction):
+    """
+    The default fucntion called when network receives an ack after sending something.
+    This function is totally unnecessary.... mostly for debugging but maybe
+    it will be useful someday to overwrite this with something
+    :param last_sent_diction: dict
+    """
+    pass
+
+
 class MoteinoNetwork(object):
     """
     This is the class that user should inteface with. It is a module that
@@ -480,6 +512,8 @@ class MoteinoNetwork(object):
             port -  The serial port.
                     on windows it will be something like 'COM4' but on linux
                     it will be somting like '/dev/ttyAMA0' or '/dev/ttyUSB0'
+                    if it is None then a fake serial port will be used (for
+                    debugging purposes)
 
             frequency - The radio frequency of the moteino network
                         The default value is RF69_433MHZ, use moteinopy.RF69_***MHZ
@@ -568,6 +602,11 @@ class MoteinoNetwork(object):
         self.Base = BaseMoteino(self, base_id)
         self._add_node(self.Base)
         self.BaseReporter = Node(self, 0xFF, "int rssi; int temperature;", "_BaseReporter")
+
+        # Set default responding functions
+        self.ReceiveFunction = default_receive
+        self.AckFunction = default_ack
+        self.NoAckFunction = default_no_ack
 
         self.start_listening()
 
@@ -759,28 +798,47 @@ class MoteinoNetwork(object):
         self._serial_listening_thread.stop()
         self._serial_listening_thread_is_active = False
 
-    def receive(self, sender, diction):
+    def bind_default(self, receive=None, ack=None, no_ack=None):
         """
-        User should overwrite this function
-        :param sender: Node
-        :param diction: dict
+        Use this method to bind your own functions to be run when
+        * receiving data
+        * no ack was received
+        * ack was received
+        :param receive: function
+        :param ack: function
+        :param no_ack: function
+        :return: None
         """
-        print("MoteinoNetwork received: " + str(diction) + " from " + sender.Name)
 
-    def no_ack(self, sender, last_sent_diction):
-        """
-        User might want to overwrite this function
-        :param sender: Node
-        :param last_sent_diction: dict
-        """
-        print("Oh no! We didn't recieve an ACK from " + sender.Name + " when we sent " + str(last_sent_diction))
+        if receive is not None:
+            self.ReceiveFunction = receive
+        if ack is not None:
+            self.AckFunction = ack
+        if no_ack is not None:
+            self.NoAckFunction = no_ack
 
-    def ack(self, sender, last_sent_diction):
-        """
-        This function is totally unnecessary.... mostly for debugging but maybe
-        it will be useful someday to overwrite this with something
-        :param sender: Node
-        :param last_sent_diction: dict
-        """
-        if self.print_when_acks_recieved:
-            print(sender.Name + " responded with an ack when we sent: " + str(last_sent_diction))
+    # def receive(self, sender, diction):
+    #     """
+    #     User should overwrite this function
+    #     :param sender: Node
+    #     :param diction: dict
+    #     """
+    #     print("MoteinoNetwork received: " + str(diction) + " from " + sender.Name)
+    #
+    # def no_ack(self, sender, last_sent_diction):
+    #     """
+    #     User might want to overwrite this function
+    #     :param sender: Node
+    #     :param last_sent_diction: dict
+    #     """
+    #     print("Oh no! We didn't recieve an ACK from " + sender.Name + " when we sent " + str(last_sent_diction))
+    #
+    # def ack(self, sender, last_sent_diction):
+    #     """
+    #     This function is totally unnecessary.... mostly for debugging but maybe
+    #     it will be useful someday to overwrite this with something
+    #     :param sender: Node
+    #     :param last_sent_diction: dict
+    #     """
+    #     if self.print_when_acks_recieved:
+    #         print(sender.Name + " responded with an ack when we sent: " + str(last_sent_diction))
