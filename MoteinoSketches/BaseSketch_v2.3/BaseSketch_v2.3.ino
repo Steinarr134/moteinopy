@@ -207,7 +207,7 @@ void checkOnSerial()
       //delay(50);
       asm volatile ("  jmp 0");
     }
-    else
+    else if (isHexCharacter(incoming))
     {
       // each byte is represented as 2 hex characters
       if (FirstHexDone)
@@ -308,6 +308,35 @@ void printStatus()
 byte rssi()
 {
   return radio.RSSI + 0x7F;
+}
+
+bool isHexCharacter(char c)
+{
+  if (c < '0')
+  {
+    return false;
+  }
+  else if (c <= '9')
+  {
+    return true;
+  }
+  else if (c < 'A')
+  {
+    return false;
+  }
+  else if (c <= 'F')
+  {
+    return true;
+  }
+  else if (c < 'a')
+  {
+    return false;
+  }
+  else if (c <= 'f')
+  {
+    return true;
+  }
+  return false;
 }
 
 void hexprint(byte b)
