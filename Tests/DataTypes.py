@@ -7,8 +7,17 @@ def test(type, h, l, repeats):
         i = r(h, l)
         s = type.hexprints(i)
         v = type.hex2dec(s)
-        if i != v:
-            print(str(type) + " i: " + str(i) + " s: " + str(s) + " v: " + str(v))
+        assert i == v
+        # if i != v:
+        #     print(str(type) + " i: " + str(i) + " s: " + str(s) + " v: " + str(v))
+
+    a = Array(type, 50)
+    for n in range(50):
+        i = [r(h, l) for j in range(n)]
+        s = a.hexprints(i)
+        v = a.hex2dec(s)
+        assert i[:n] == v[:n]
+
 
 
 test(Byte(), 0, 255, 50)
@@ -23,3 +32,15 @@ for _ in range(50):
     s = char.hexprints(chr(i))
     v = char.hex2dec(s)
     assert i == v
+
+
+a = Array(Char(), 5)
+for _ in range(50):
+    i = "".join([chr(r(0, 255)) for j in range(5)])
+    s = a.hexprints(i)
+    v = a.hex2dec(s)
+    assert i == v
+
+print("---------------------------------------------"
+      "\nAll tests on Datatypes performed successfully"
+      "\n---------------------------------------------")

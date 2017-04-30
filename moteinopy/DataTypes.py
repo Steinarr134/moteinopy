@@ -215,42 +215,44 @@ class Array(DataType):
         if not issubclass(subtype.__class__, DataType):
             raise ValueError("problem in Array.__init__(), subtype is not a Datatype!")
         self.SubType = subtype
-        if subtype.ReturnType is str:
+        if type(subtype) is Char:
             self.ReturnType = str
-            self.SubType = Byte()
         else:
             self.ReturnType = list
         self.N = n
         self.NofBytes = subtype.NofBytes*n
 
     def hexprints(self, l=None):
-        # if we receive a string then parse it to a list
-        # of char values
-        if type(l) is str:
-            s = str(l)
-            l = list()
-            for S in s:
-                l.append(ord(S))
 
-        returner = str()
-        if not l:
-            l = list()
-        while len(l) < self.N:
-            l.append(0)
-        for L in l:
-            returner += self.SubType.hexprints(L)
-        return returner
+        if self.ReturnType is str:
+            returner = str()
+            if not l:
+                l = str()
+            while len(l) < self.N:
+                l += " "
+            for L in l:
+                returner += self.SubType.hexprints(L)
+            return returner
+        else:
+            returner = str()
+            if not l:
+                l = list()
+            while len(l) < self.N:
+                l.append(0)
+            for L in l:
+                returner += self.SubType.hexprints(L)
+            return returner
 
     def hex2dec(self, s):
         returner = list()
         for i in range(self.N):
             returner.append(self.SubType.hex2dec(s[:self.SubType.NofBytes*2]))
             s = s[self.SubType.NofBytes*2:]
-        if self.SubType == Char:
-            idk = str()
+        if type(self.SubType) is Char:
+            return_str = str()
             for i in returner:
-                idk += chr(i)
-            return idk
+                return_str += chr(i)
+            return return_str
         else:
             return returner
 
