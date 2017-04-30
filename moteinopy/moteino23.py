@@ -8,11 +8,6 @@ __author__ = 'SteinarrHrafn'
 
 
 # This is so that the code works in both 2.7 and 3.5
-try:
-    unicode
-except (NameError, AttributeError):
-    unicode = str
-
 if sys.version_info[0] < 3:  # Python 2?
     # using exec avoids a SyntaxError in Python 3
     exec("""def reraise(exc_type, exc_value, exc_traceback=None):
@@ -24,6 +19,7 @@ else:
         if exc_value.__traceback__ is not exc_traceback:
             raise exc_value.with_traceback(exc_traceback)
         raise exc_value
+    unicode = str
 
 
 class MySerial(object):
@@ -172,6 +168,10 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         self.AckFunction = lambda d: network.AckFunction(d)
         self.NoAckFunction = lambda d: network.NoAckFunction(d)
 
+        self.default_max_wait = None
+        self.default_retries = None
+        self.default_request_ack = None
+
     def __str__(self):
         return "Node(" + self.Name + ") with id(" + str(self.ID) \
                + ") and " + str(self.Struct)
@@ -282,11 +282,11 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         elif 'response_expected' in kwargs:
             self.Network.ResponseExpected = kwargs['response_expected']
 
-        max_wait = None
+        max_wait = self.default_max_wait
         if 'max_wait' in kwargs:
             max_wait = kwargs['max_wait']
 
-        request_ack = True
+        request_ack = self.default_request_ack
         if 'request_ack' in kwargs:
             request_ack = kwargs['request_ack']
         elif 'ack_requested' in kwargs:
@@ -296,7 +296,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         if 'diction' in kwargs:
             diction = kwargs['diction']
 
-        retries = 5
+        retries = self.default_retries
         if 'retries' in kwargs:
             retries = kwargs['retries']
 
@@ -591,7 +591,6 @@ class MoteinoNetwork(object):
         self.nodes_list = list()
         self._serial_listening_thread = None
         self._serial_listening_thread_is_active = False
-        self.max_wait = 500
         self.SendAndReceiveDictHolder = None
         self.AckReceived = False
         self.NodeCounter = 0
@@ -608,6 +607,11 @@ class MoteinoNetwork(object):
         self.ReceiveFunction = default_receive
         self.AckFunction = default_ack
         self.NoAckFunction = default_no_ack
+
+        # default sending options
+        self.default_max_wait = 500
+        self.default_retries = 3
+        self.default_request_ack = True
 
         self.start_listening()
 
@@ -669,7 +673,7 @@ class MoteinoNetwork(object):
         :param max_wait: int
         """
         if max_wait is None:
-            max_wait = self.max_wait
+            max_wait = self.default_max_wait
         logging.debug("waiting for radio....")
         t = time.time()
         self._WaitForRadioEvent.wait(max_wait/float(1000))
@@ -692,8 +696,12 @@ class MoteinoNetwork(object):
         :param payload: str
         :param max_wait: int
         """
-        sendstr = Byte.hex(send2id) + Bool.hex(request_ack) + Byte.hex(retries) + payload
+        if request_ack is None:
+            request_ack = self.default_request_ack
+        if retries is None:
+            retries = self.default_retries
 
+        sendstr = Byte.hex(send2id) + Bool.hex(request_ack) + Byte.hex(retries) + payload
         self.print2serial(sendstr, max_wait)
 
     def print2serial(self, sendstr, max_wait=None):
