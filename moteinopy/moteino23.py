@@ -66,7 +66,8 @@ class FakeSerial(object):
         pass
 
     def close(self):
-        pass
+        self.S = ''
+        self.E.set()
 
     def write(self, s):
         self.S = s

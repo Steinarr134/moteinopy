@@ -32,4 +32,4 @@ node2.send(10)  # should also print with r1 as that is default
 node2.bind(receive=r2)
 node2.send(10)  # should print with r2
 
-
+mn.shut_down()
