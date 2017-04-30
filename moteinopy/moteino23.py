@@ -143,8 +143,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         self.Struct = Struct(structstring)
         self.LastSent = dict()
         self.Network = network
-        self.Name = 'Node-' + str(network.NodeCounter) if name is None else name
-        network.NodeCounter += 1
+        self.Name = 'Node-' + str(self.ID) if name is None else name
         self.Translations = dict()
         self.ReceiveFunction = lambda d: network.receive(self, d)
         self.AckFunction = lambda d: network.ack(self, d)
@@ -515,7 +514,7 @@ class MoteinoNetwork(object):
         """
 
         # initiate serial port and base
-        if port is None:
+        if not port:
             self._Serial = FakeSerial()
         else:
             self._Serial = MySerial(port=port, baudrate=115200)
