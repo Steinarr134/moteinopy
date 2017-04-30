@@ -2,6 +2,7 @@ import serial
 import threading
 import time
 import logging
+import sys
 from moteinopy.DataTypes import types, Array, Byte, Char, Bool
 __author__ = 'SteinarrHrafn'
 
@@ -11,6 +12,18 @@ try:
     unicode
 except (NameError, AttributeError):
     unicode = str
+
+if sys.version_info[0] < 3:  # Python 2?
+    # using exec avoids a SyntaxError in Python 3
+    exec("""def reraise(exc_type, exc_value, exc_traceback=None):
+                raise exc_type, exc_value, exc_traceback""")
+else:
+    def reraise(exc_type, exc_value, exc_traceback=None):
+        if exc_value is None:
+            exc_value = exc_type()
+        if exc_value.__traceback__ is not exc_traceback:
+            raise exc_value.with_traceback(exc_traceback)
+        raise exc_value
 
 
 class MySerial(object):
@@ -68,7 +81,8 @@ class Struct(object):
             incoming = mystruct.decode(str_from_serial)
 
     """
-    _disallowed_partnames = ['block', 'max_wait', 'expect_response', 'diction']
+    _disallowed_partnames = ['block', 'max_wait', 'expect_response', 'diction',
+                             'Sender', 'SenderName', 'RSSI', 'SenderID']
 
     def __init__(self, structstring):
         self.Parts = list()
@@ -114,8 +128,11 @@ class Struct(object):
                 try:
                     returner += Type.hexprints(values_dict[Name])
                 except ValueError as e:
-                    raise ValueError(str(e) + " when parsing " + Name + "=" +
-                                     values_dict[Name])
+                    reraise(type(e),
+                            type(e)(str(e) +
+                                    " when parsing {}={}, perhaps a translation as gone awry?"
+                                    "".format(Name, values_dict[Name])),
+                            sys.exc_info()[2])
             else:
                 returner += Type.hexprints()  # hexprints() assumes value is 0
         return returner
