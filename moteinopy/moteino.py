@@ -310,6 +310,9 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
 
         logging.info("sending: " + str(diction))
 
+        diction['send2id'] = self.ID
+        diction['Sender'] = self
+
         self.LastSent = diction
         self.Network.send2base(send2id=self.ID,
                                request_ack=request_ack,
