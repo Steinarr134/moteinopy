@@ -459,17 +459,20 @@ class ListeningThread(threading.Thread):
 
     def run(self):
         logging.debug("Serial listening thread started")
+        incoming = ''
         while True:
             try:
                 incoming = self.Listen2.readline().rstrip()  # use [:-1]?
             except serial.SerialException as e:
                 if not self.Stop:
                     logging.warning("serial exception ocurred: " + str(e))
+                    break
             if self.Stop:
                 break
             else:
                 logging.debug("Serial port said: " + str(incoming))
-                Send2ParentThread(self.Network, incoming).start()
+                if incoming:
+                    Send2ParentThread(self.Network, incoming).start()
         logging.info("Serial listening thread shutting down")
 
 RF69_315MHZ = 31
