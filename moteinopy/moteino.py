@@ -555,7 +555,8 @@ class MoteinoNetwork(object):
                  encryption_key='',
                  base_id=1,
                  promiscous_mode=False,
-                 init_base=True):
+                 init_base=True,
+                 baudrate=115200):
         """
 
         :param port: str
@@ -572,7 +573,7 @@ class MoteinoNetwork(object):
         if not port:
             self._Serial = FakeSerial()
         else:
-            self._Serial = MySerial(port=port, baudrate=115200)
+            self._Serial = MySerial(port=port, baudrate=baudrate)
 
         if init_base:
             self._initiate_base(frequency, high_power, network_id, base_id, encryption_key, promiscous_mode)
