@@ -6,6 +6,8 @@ import sys
 from moteinopy.DataTypes import types, Array, Byte, Char, Bool
 __author__ = 'SteinarrHrafn'
 
+logger =logging.getLogger(__name__)
+
 
 # This is so that the code works in both 2.7 and 3.5
 if sys.version_info[0] < 3:  # Python 2?
@@ -242,7 +244,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         """
 
         if part not in self.Struct.Parts_dict:
-            logging.warning("Translation regarding part {part} was added to {node}. "
+            logger.warning("Translation regarding part {part} was added to {node}. "
                             "However, the Node's struct doesn't contain such a part, "
                             "I doubt you wanted to do this (P.S part names are case "
                             "sensitive)".format(part=part, node=self.Name))
@@ -252,7 +254,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
             self.Translations[part][key] = value
             self.Translations[part][value] = key
 
-        logging.debug("Translation(s): " + str(args) + " added regarding " + part + " for " + self.Name)
+        logger.debug("Translation(s): " + str(args) + " added regarding " + part + " for " + self.Name)
 
     def send(self, *args, **kwargs):
         """
@@ -308,7 +310,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
             if key in self.Struct.Parts_dict:
                 diction[key] = self._translate(key, value)
 
-        logging.info("sending: " + str(diction))
+        logger.info("sending: " + str(diction))
 
         diction['send2id'] = self.ID
         diction['Sender'] = self
@@ -327,7 +329,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         :return: None
         """
         _d = self.Struct.decode(payload)
-        logging.debug(str(_d) + " received from " + str(self))
+        logger.debug(str(_d) + " received from " + str(self))
 
         # translate and add useful entries
         d = dict()
@@ -338,7 +340,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         d['Sender'] = self
         d['RSSI'] = int(self.Network.RSSI)
 
-        logging.info(str(d) + " received from " + str(self))
+        logger.info(str(d) + " received from " + str(self))
 
         if not self.Network.ReceiveWithSendAndReceive:
             self.Network.stop_waiting_for_radio()
@@ -384,13 +386,13 @@ class BaseMoteino(Node):
         self.Network.AckReceived = d['AckReceived']
         self.Network.RSSI = d['rssi']
         if d['AckReceived']:
-            logging.info("Ack received when " + str(sender.LastSent) + " was sent")
+            logger.info("Ack received when " + str(sender.LastSent) + " was sent")
 
             if not self.Network.ResponseExpected:
                 self.Network.stop_waiting_for_radio()
             sender.AckFunction(dict(sender.LastSent))
         else:
-            logging.warning("No ack received when " + str(sender.LastSent) + " was sent")
+            logger.warning("No ack received when " + str(sender.LastSent) + " was sent")
             self.Network.stop_waiting_for_radio()
             sender.NoAckFunction(dict(sender.LastSent))
 
@@ -433,7 +435,7 @@ class Send2ParentThread(threading.Thread):
                   "" + str(Byte.hex2dec(self.Incoming[2:4])) + ", rssi=" + str(Byte.hex(self.Incoming[4:6])))
 
         elif sender_id not in self.Network.nodes:
-            logging.warning("Something must be wrong because BaseMoteino just recieved a message "
+            logger.warning("Something must be wrong because BaseMoteino just recieved a message "
                             "from moteino with ID: " + str(sender_id) + " but no such node has "
                             "been registered to the network. Btw the raw data was: " + str(self.Incoming))
         elif sender_id == self.Network.Base.ID:
@@ -460,22 +462,22 @@ class ListeningThread(threading.Thread):
         self.Listen2.close()
 
     def run(self):
-        logging.debug("Serial listening thread started")
+        logger.debug("Serial listening thread started")
         incoming = ''
         while True:
             try:
                 incoming = self.Listen2.readline().rstrip()  # use [:-1]?
             except serial.SerialException as e:
                 if not self.Stop:
-                    logging.warning("serial exception ocurred: " + str(e))
+                    logger.warning("serial exception ocurred: " + str(e))
                     break
             if self.Stop:
                 break
             else:
-                logging.debug("Serial port said: " + str(incoming))
+                # logger.debug("Serial port said: " + str(incoming))
                 if incoming:
                     Send2ParentThread(self.Network, incoming).start()
-        logging.info("Serial listening thread shutting down")
+        logger.info("Serial listening thread shutting down")
 
 RF69_315MHZ = 31
 RF69_433MHZ = 43
@@ -583,7 +585,7 @@ class MoteinoNetwork(object):
         if init_base:
             self._initiate_base(frequency, high_power, network_id, base_id, encryption_key, promiscous_mode)
         else:
-            logging.info("Initialisation of base skipped")
+            logger.info("Initialisation of base skipped")
 
         # threading objects
         self._SerialLock = threading.Lock()
@@ -633,16 +635,16 @@ class MoteinoNetwork(object):
                        promiscous_mode=False):
 
         self._Serial.write('X')     # send reset sign
-        logging.debug("Restarting base")
+        logger.debug("Restarting base")
         time.sleep(0.6)  # sleep  for 0.6 seconds, bootloader uses 0.5 seconds
-        logging.debug("Waiting for wakeup sign from base...")
+        logger.debug("Waiting for wakeup sign from base...")
         incoming = self._Serial.readline().rstrip()
         if not incoming == b"moteinopy basesketch v2.3":
             self._Serial.close()
             raise AssertionError("moteinopy requires the correct BaseSketch to be present on the base"
                                  "Currently it requires version 2.3, Find the BaseSketch on the"
                                  "GitHub site: https://github.com/Steinarr134/moteinopy/tree/master/MoteinoSketches")
-        logging.debug("... got it, base with " + str(incoming) + " seems to be present, sending operating values...")
+        logger.debug("... got it, base with " + str(incoming) + " seems to be present, sending operating values...")
         encryption_key_hex = ""
         if encryption_key == '':
             encryption_key = [chr(0)]*16
@@ -654,10 +656,10 @@ class MoteinoNetwork(object):
                            Bool.hex(high_power) +
                            encryption_key_hex +
                            Bool.hex(promiscous_mode) + "\n")
-        logging.debug("waiting for ready sign from base...")
+        logger.debug("waiting for ready sign from base...")
         incoming = self._Serial.readline().rstrip()
         assert incoming == b"Ready"
-        logging.debug("... got it, base is ready!")
+        logger.debug("... got it, base is ready!")
 
     def shut_down(self):
         self.stop_waiting_for_radio()
@@ -683,10 +685,10 @@ class MoteinoNetwork(object):
         """
         if max_wait is None:
             max_wait = self.default_max_wait
-        logging.debug("waiting for radio....")
+        logger.debug("waiting for radio....")
         t = time.time()
         self._WaitForRadioEvent.wait(max_wait/float(1000))
-        logging.debug("waited for radio for " + str((time.time() - t)*1000) + " ms")
+        logger.debug("waited for radio for " + str((time.time() - t)*1000) + " ms")
 
     def stop_waiting_for_radio(self):
         """
@@ -716,7 +718,7 @@ class MoteinoNetwork(object):
     def print2serial(self, sendstr, max_wait=None):
         with self._SerialLock:
             self._Serial.write(sendstr + '\n')
-            logging.debug("sent: " + sendstr + "   to the serial port")
+            # logger.debug("sent: " + sendstr + "   to the serial port")
             self._WaitForRadioEvent.clear()
             self._wait_for_radio(max_wait=max_wait)
 
@@ -730,7 +732,7 @@ class MoteinoNetwork(object):
         for node in self.nodes_list:
             if node is not self.Base:
                 node.add_translation(part, *args)
-        logging.debug("Global translation {t} added regarding {part}".format(t=args, part=part))
+        logger.debug("Global translation {t} added regarding {part}".format(t=args, part=part))
 
     def _add_node(self, node):
         """
@@ -741,7 +743,7 @@ class MoteinoNetwork(object):
         self.nodes[node.Name] = node
         self.nodes[node.ID] = node
         self.nodes_list.append(node)
-        logging.info(str(node) + " added to the network.")
+        logger.info(str(node) + " added to the network.")
 
         for part, args in list(self.GlobalTranslations.items()):
             node.add_translation(part, *args)
