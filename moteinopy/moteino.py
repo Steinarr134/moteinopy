@@ -327,16 +327,18 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         :return: None
         """
         _d = self.Struct.decode(payload)
-        logging.info(str(_d) + " received from " + str(self))
+        logging.debug(str(_d) + " received from " + str(self))
 
+        # translate and add useful entries
         d = dict()
         for part, key in list(_d.items()):
             d[part] = self._translate(part, key)
-
         d['SenderID'] = self.ID
         d['SenderName'] = self.Name
         d['Sender'] = self
         d['RSSI'] = int(self.Network.RSSI)
+
+        logging.info(str(d) + " received from " + str(self))
 
         if not self.Network.ReceiveWithSendAndReceive:
             self.Network.stop_waiting_for_radio()
