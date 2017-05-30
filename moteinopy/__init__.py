@@ -1,3 +1,3 @@
 # from moteinopyCode.moteino import MoteinoNetwork
 import moteinopy.DataTypes as DataTypes
-from moteinopy.moteino import MoteinoNetwork
+from moteinopy.moteino import MoteinoNetwork, Struct
