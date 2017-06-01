@@ -8,6 +8,7 @@ __author__ = 'SteinarrHrafn'
 
 logger =logging.getLogger(__name__)
 
+CorrectBaseSketchWakeupSign = b"moteinopy basesketch v2.3"
 
 # This is so that the code works in both 2.7 and 3.5
 if sys.version_info[0] < 3:  # Python 2?
@@ -639,7 +640,7 @@ class MoteinoNetwork(object):
         time.sleep(0.6)  # sleep  for 0.6 seconds, bootloader uses 0.5 seconds
         logger.debug("Waiting for wakeup sign from base...")
         incoming = self._Serial.readline().rstrip()
-        if not incoming == b"moteinopy basesketch v2.3":
+        if not incoming == CorrectBaseSketchWakeupSign:
             self._Serial.close()
             raise AssertionError("moteinopy requires the correct BaseSketch to be present on the base"
                                  "Currently it requires version 2.3, Find the BaseSketch on the"
