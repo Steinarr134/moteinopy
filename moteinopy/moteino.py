@@ -896,7 +896,7 @@ def look_for_base(port, baudrate=115200):
         return False, "Base doesn't seem to be present on '{}'. " \
                       "nothing is being transmitted over the serial port".format(port)
 
-    stuff = s.read(s.in_waiting)
+    stuff = s.read(s.in_waiting).split('\n')[0]
 
     if stuff.rstrip() == CorrectBaseSketchWakeupSign:
         return True, "Success, base is present on '{}'".format(port)
