@@ -3,3 +3,4 @@
 dist/
 moteinopy.egg-info/
 Tests/MoreTest/Config.py
+TestCode/

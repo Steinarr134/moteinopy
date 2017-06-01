@@ -863,3 +863,44 @@ class MoteinoNetwork(object):
     #     """
     #     if self.print_when_acks_recieved:
     #         print(sender.Name + " responded with an ack when we sent: " + str(last_sent_diction))
+
+
+def look_for_base(port, baudrate=115200):
+    """
+    This is a user importable function that can be deployed to check if a serial port
+    has a base present or not. This will be usefull if more then one serial port are
+    available.
+
+    The script opens the serial port in question, prints "X", which should restart the
+    base if it didn't restart as the serial port was initialized. The script then waits
+    to see if base responds with the proper wakeup call.
+
+    The script returns a tuple, (True, "Port has a working base") if it finds a base on
+    the port but (False, "String containing reason for failure") if not.
+
+    :param port: str
+    :param baudrate: int
+    :return: bool, str
+    """
+
+    # Try to open serial port, expect to run into trouble
+    try:
+        s = serial.Serial(port, baudrate=baudrate, timeout=1, writeTimeout=1)
+        s.write(b"X")
+    except serial.SerialException as e:
+        return False, "No luck on port '{}', ".format(port) + repr(e)
+
+    time.sleep(1)
+
+    if s.in_waiting <= 0:
+        return False, "Base doesn't seem to be present on '{}'. " \
+                      "nothing is being transmitted over the serial port".format(port)
+    print("reading")
+    stuff = s.read(s.in_waiting)
+
+    if stuff.rstrip() == CorrectBaseSketchWakeupSign:
+        return True, "Success, base is present on '{}'".format(port)
+    else:
+        return False, "Base doesn't seem present on '{}', " \
+                      "wrong wakeup sign received: '{}'" \
+                      "".format(port, stuff.replace(b'\n', b'\\n'))
