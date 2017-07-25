@@ -6,7 +6,7 @@ import sys
 from moteinopy.DataTypes import types, Array, Byte, Char, Bool
 __author__ = 'SteinarrHrafn'
 
-logger =logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 CorrectBaseSketchWakeupSign = b"moteinopy basesketch v2.3"
 
@@ -246,9 +246,9 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
 
         if part not in self.Struct.Parts_dict:
             logger.warning("Translation regarding part {part} was added to {node}. "
-                            "However, the Node's struct doesn't contain such a part, "
-                            "I doubt you wanted to do this (P.S part names are case "
-                            "sensitive)".format(part=part, node=self.Name))
+                           "However, the Node's struct doesn't contain such a part, "
+                           "I doubt you wanted to do this (P.S part names are case "
+                           "sensitive)".format(part=part, node=self.Name))
         if part not in self.Translations:
             self.Translations[part] = dict()
         for (key, value) in args:
@@ -437,8 +437,8 @@ class Send2ParentThread(threading.Thread):
 
         elif sender_id not in self.Network.nodes:
             logger.warning("Something must be wrong because BaseMoteino just recieved a message "
-                            "from moteino with ID: " + str(sender_id) + " but no such node has "
-                            "been registered to the network. Btw the raw data was: " + str(self.Incoming))
+                           "from moteino with ID: " + str(sender_id) + " but no such node has "
+                           "been registered to the network. Btw the raw data was: " + str(self.Incoming))
         elif sender_id == self.Network.Base.ID:
             self.Network.Base.send2parent(self.Incoming[2:])
         else:
