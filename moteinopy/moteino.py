@@ -592,6 +592,7 @@ class MoteinoNetwork(object):
         # initiate serial port and base
         if not port:
             self._Serial = FakeSerial()
+            init_base = False
         else:
             self._Serial = MySerial(port=port, baudrate=baudrate)
 
