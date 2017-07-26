@@ -249,6 +249,8 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
                            "However, the Node's struct doesn't contain such a part, "
                            "I doubt you wanted to do this (P.S part names are case "
                            "sensitive)".format(part=part, node=self.Name))
+            # Change?   The logger is supposed to handle logging of the network operations but
+            #           this happening is a programming error waiting to happen not a network error
         if part not in self.Translations:
             self.Translations[part] = dict()
         for (key, value) in args:
@@ -382,7 +384,7 @@ class BaseMoteino(Node):
     def send2parent(self, payload):
         d = self.Struct.decode(payload)
         if d['send2id'] not in self.Network.nodes:
-            raise ValueError("send2id not in known nodes")  # this should never happen
+            raise ValueError("send2id={} not in known nodes".format(d['send2id']))  # this should never happen
         sender = self.Network.nodes[d['send2id']]
         self.Network.AckReceived = d['AckReceived']
         self.Network.RSSI = d['rssi']
@@ -475,7 +477,7 @@ class ListeningThread(threading.Thread):
             if self.Stop:
                 break
             else:
-                # logger.debug("Serial port said: " + str(incoming))
+                logger.debug("Serial port said: " + str(incoming))
                 if incoming:
                     Send2ParentThread(self.Network, incoming).start()
         logger.info("Serial listening thread shutting down")
