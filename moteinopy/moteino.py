@@ -93,18 +93,24 @@ class Struct(object):
         self.Parts = list()
         self.NofBytes = 0
         self.StructString = structstring
-        self._disect_structstring(structstring)
+        self._dissect_structstring(structstring)
 
-    def _disect_structstring(self, structstring):
+    def _dissect_structstring(self, structstring):
         lines = structstring.rstrip(';').split(';')  # remove the last ';' and split by the other ones
         for line in lines:
             temp = line.rsplit(' ', 1)  # split by whitespaces
             if '[' in temp[1]:  # if we are dealing with an array
                 ttemp = temp[1].split('[')
-                _type = Array(types[temp[0].strip()], int(ttemp[1][:-1]))
+                _typename = temp[0].strip()
+                if _typename not in types:
+                    raise ValueError("DataType: '{}' not supported, sorry. If you need it you should"
+                                     " contact the library creators on github for info on implementing "
+                                     "it".format(_typename))
+                _type = Array(types[_typename], int(ttemp[1][:-1]))
                 _name = ttemp[0]
             else:
-                _type = types[temp[0].strip()]
+                _typename = temp[0].strip()
+                _type = types[_typename]
                 _name = temp[1]
             if _name in self._disallowed_partnames:
                 raise ValueError(_name + " is not allowed as a variable name in a struct. ")
