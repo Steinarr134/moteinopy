@@ -110,6 +110,10 @@ class Struct(object):
                 _name = ttemp[0]
             else:
                 _typename = temp[0].strip()
+                if _typename not in types:
+                    raise ValueError("DataType: '{}' not supported, sorry. If you need it you should"
+                                     " contact the library creators on github for info on implementing "
+                                     "it".format(_typename))
                 _type = types[_typename]
                 _name = temp[1]
             if _name in self._disallowed_partnames:
