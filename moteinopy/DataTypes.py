@@ -263,6 +263,7 @@ types = {
     'unsigned int': UnsignedInt(),
     'int': Int(),
     'bool': Bool(),
+    'boolean': Bool(),
     'unsigned long': UnsignedLong(),
     'long': Long(),
 }
