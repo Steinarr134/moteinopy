@@ -6,7 +6,6 @@ https://github.com/pypa/sampleproject
 
 to submit to pypi change the version number and then do:
 
-python setup.py register -r pypi
 python setup.py sdist upload -r pypi
 
 
@@ -32,7 +31,7 @@ if __name__ == '__main__':
         # Versions should comply with PEP440.  For a discussion on single-sourcing
         # the version across setup.py and the project code, see
         # https://packaging.python.org/en/latest/single_source_version.html
-        version='1.1.1b6',
+        version='1.1.1',
 
         description='Moteino communication module',
         long_description=long_description,
@@ -53,7 +52,7 @@ if __name__ == '__main__':
             #   3 - Alpha
             #   4 - Beta
             #   5 - Production/Stable
-            'Development Status :: 4 - Beta',
+            'Development Status :: 5 - Production/Stable',
 
             # Indicate who your project is intended for
             'Intended Audience :: Developers',
