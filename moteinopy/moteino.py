@@ -757,7 +757,10 @@ class MoteinoNetwork(object):
         self.nodes[node.Name] = node
         self.nodes[node.ID] = node
         self.nodes_list.append(node)
-        logger.info(str(node) + " added to the network.")
+        if node.Name == "BaseMoteino":
+            logger.debug(str(node) + " added to the network")
+        else:
+            logger.info(str(node) + " added to the network.")
 
         for part, args in list(self.GlobalTranslations.items()):
             node.add_translation(part, *args)
