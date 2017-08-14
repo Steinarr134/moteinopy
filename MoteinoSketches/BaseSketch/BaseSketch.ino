@@ -93,6 +93,12 @@ void setup()
         //Serial.println("newline received");
         break;
       }
+      else if (incoming == 'X')
+      {
+        //Serial.println("RESTART");
+        //delay(50);
+        asm volatile ("  jmp 0");
+      }
       else
       {
         if (first_hex_done)
