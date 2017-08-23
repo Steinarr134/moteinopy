@@ -89,6 +89,10 @@ class Struct(object):
     _disallowed_partnames = ['block', 'max_wait', 'expect_response', 'diction',
                              'Sender', 'SenderName', 'RSSI', 'SenderID']
 
+    _UnsupportedDataTypeErrorString = "Struct definition string \"{}\" contains an error, maybe a" \
+                                      " missing ';' or perhaps an unsupported datatype. " \
+                                      "Supported datatypes are: " + types
+
     def __init__(self, structstring):
         self.Parts = list()
         self.NofBytes = 0
@@ -103,17 +107,13 @@ class Struct(object):
                 ttemp = temp[1].split('[')
                 _typename = temp[0].strip()
                 if _typename not in types:
-                    raise ValueError("DataType: '{}' not supported, sorry. If you need it you should"
-                                     " contact the library creators on github for info on implementing "
-                                     "it".format(_typename))
+                    raise ValueError(self._UnsupportedDataTypeErrorString.format(_typename))
                 _type = Array(types[_typename], int(ttemp[1][:-1]))
                 _name = ttemp[0]
             else:
                 _typename = temp[0].strip()
                 if _typename not in types:
-                    raise ValueError("DataType: '{}' not supported, sorry. If you need it you should"
-                                     " contact the library creators on github for info on implementing "
-                                     "it".format(_typename))
+                    raise ValueError(self._UnsupportedDataTypeErrorString.format(_typename))
                 _type = types[_typename]
                 _name = temp[1]
             if _name in self._disallowed_partnames:
