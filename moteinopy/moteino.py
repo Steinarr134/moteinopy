@@ -189,6 +189,9 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         return "Node(" + self.Name + ") with id(" + str(self.ID) \
                + ") and " + str(self.Struct)
 
+    def __repr__(self):
+        return self.__str__()
+
     def bind(self, receive=None, ack=None, no_ack=None):
         """
         Use this method to bind your own functions to be run when
