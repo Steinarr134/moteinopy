@@ -91,7 +91,7 @@ class Struct(object):
 
     _UnsupportedDataTypeErrorString = "Struct definition string \"{}\" contains an error, maybe a" \
                                       " missing ';' or perhaps an unsupported datatype. " \
-                                      "Supported datatypes are: " + types
+                                      "Supported datatypes are: " + str([t for t in types])
 
     def __init__(self, structstring):
         self.Parts = list()
@@ -406,6 +406,7 @@ class BaseMoteino(Node):
             sender.AckFunction(dict(sender.LastSent))
         else:
             logger.warning("No ack received when " + str(sender.LastSent) + " was sent")
+            self.Network.ReceiveWithSendAndReceive = False
             self.Network.stop_waiting_for_radio()
             sender.NoAckFunction(dict(sender.LastSent))
 
