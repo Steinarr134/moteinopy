@@ -294,7 +294,8 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
 
         :return: bool
         """
-        self.Network.ResponseExpected = False
+        # ResponseExpected gets passed through Network value
+        self.Network.ResponseExpected = False  # Default is False
         if 'expect_response' in kwargs:
             self.Network.ResponseExpected = kwargs['expect_response']
         elif 'response_expected' in kwargs:
@@ -379,7 +380,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         kwargs['expect_response'] = True
         self.send(*args, **kwargs)
         if id(self.Network.SendAndReceiveDictHolder) != temp:
-            return self.Network.SendAndReceiveDictHolder
+            return dict(self.Network.SendAndReceiveDictHolder)  # force new instance
         else:
             return None
 
@@ -644,6 +645,8 @@ class MoteinoNetwork(object):
 
         self.start_listening()
 
+        self.version = "2.4b"
+
     def _initiate_base(self,
                        frequency=RF69_433MHZ,
                        high_power=True,
@@ -736,7 +739,7 @@ class MoteinoNetwork(object):
     def print2serial(self, sendstr, max_wait=None):
         with self._SerialLock:
             self._Serial.write(sendstr + '\n')
-            # logger.debug("sent: " + sendstr + "   to the serial port")
+            logger.debug("sent: " + sendstr + "   to the serial port")
             self._WaitForRadioEvent.clear()
             self._wait_for_radio(max_wait=max_wait)
 

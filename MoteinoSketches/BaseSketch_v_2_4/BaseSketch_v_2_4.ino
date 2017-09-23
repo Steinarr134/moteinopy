@@ -276,7 +276,7 @@ void sendTheStuff()
   
   if (s.ack_requested)
   {
-    bool success = radio.sendWithRetry(s.send2id, (const void*)(&s.buffer), SerialCounter - 3, s.retries);
+    bool success = radio.sendWithRetry(s.send2id, (const void*)(&s.buffer), SerialCounter - 3, s.retries, 10);
     hexprint(self_id);
     hexprint(s.send2id);
     hexprint(success);
