@@ -829,6 +829,9 @@ class MoteinoNetwork(object):
         :param send2: str or Node
         """
         if type(send2) is str or type(send2) is int:
+            if send2 not in self.nodes:
+                raise ValueError("Attempted to send to a node that had not been "
+                                 "properly declared, send2 was: {}".format(send2))
             self.nodes[send2].send(*args, **kwargs)
         elif type(send2) is Node:
             send2.send(*args, **kwargs)
