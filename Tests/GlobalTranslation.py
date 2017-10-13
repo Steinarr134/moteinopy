@@ -27,3 +27,7 @@ node2.send("one")
 node3.send("one")
 node2.send("three")
 node3.send("four")
+
+
+# Also test that translations don't inverse when they shouldn't
+node3.send(1)

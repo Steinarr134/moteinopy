@@ -218,10 +218,15 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         :return: object
         """
         if part in self.Translations:
-            # print "key is in Translations"
+            # print("key({}) is in Translations".format(key))
             if key in self.Translations[part]:
-                # print "value is in Translations[key], returning: " + str(self.Translations[key][value])
-                return self.Translations[part][key]
+                # print("value is in Translations[key]")
+                # print("StructPart: {}, type: {}, => {}"
+                #       "".format(self.Struct.Parts_dict[part].ReturnType,
+                #                    type(key),
+                #                 self.Struct.Parts_dict[part].ReturnType is type(key)))
+                if self.Struct.Parts_dict[part].ReturnType is not type(key):
+                    return self.Translations[part][key]
         # print "no translation, just returning value: " + str(value)
         return key
 
