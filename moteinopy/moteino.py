@@ -918,7 +918,7 @@ def look_for_base(port, baudrate=115200):
     except serial.SerialException as e:
         return False, "No luck on port '{}', ".format(port) + repr(e)
 
-    time.sleep(1)
+    time.sleep(3)
 
     if s.in_waiting <= 0:
         return False, "Base doesn't seem to be present on '{}'. " \
