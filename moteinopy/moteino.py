@@ -210,7 +210,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         if no_ack is not None:
             self.NoAckFunction = no_ack
 
-    def _translate(self, part, key):
+    def _translate(self, part, key, from_network=False):
         """
         Looks for a translation, returns the key if no translation is found
         :param part: string
@@ -225,7 +225,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
                 #       "".format(self.Struct.Parts_dict[part].ReturnType,
                 #                    type(key),
                 #                 self.Struct.Parts_dict[part].ReturnType is type(key)))
-                if self.Struct.Parts_dict[part].ReturnType is not type(key):
+                if from_network or self.Struct.Parts_dict[part].ReturnType is not type(key):
                     return self.Translations[part][key]
         # print "no translation, just returning value: " + str(value)
         return key
@@ -356,7 +356,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         # translate and add useful entries
         d = dict()
         for part, key in list(_d.items()):
-            d[part] = self._translate(part, key)
+            d[part] = self._translate(part, key, from_network=True)
         d['SenderID'] = self.ID
         d['SenderName'] = self.Name
         d['Sender'] = self
