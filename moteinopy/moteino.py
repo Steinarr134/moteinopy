@@ -481,7 +481,9 @@ class ListeningThread(threading.Thread):
         self.Stop = False
 
     def stop(self):
+        logging.debug("Listening thread stopping")
         self.Stop = True
+        self.Listen2.write('X')
         self.Listen2.close()
 
     def run(self):
@@ -491,6 +493,7 @@ class ListeningThread(threading.Thread):
             try:
                 incoming = self.Listen2.readline().rstrip()  # use [:-1]?
             except serial.SerialException as e:
+                logging.debug("Serial exception occured: " + str(e))
                 if not self.Stop:
                     logger.warning("serial exception ocurred: " + str(e))
                     break
@@ -690,6 +693,9 @@ class MoteinoNetwork(object):
     def shut_down(self):
         self.stop_waiting_for_radio()
         self.stop_listening()
+
+    # def __del__(self):
+    #     self.shut_down()
 
     def _wait_for_radio(self, max_wait=None):
         """

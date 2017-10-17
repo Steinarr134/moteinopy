@@ -1,20 +1,13 @@
 from moteinopy import MoteinoNetwork as MN
 import logging
+import time
 
 logging.basicConfig(level=logging.DEBUG)
 
-# mynetwork = MN('COM50', network_id=7, encryption_key="HugiBogiHugiBogi", )
-mynetwork = MN('COM50', init_base=False)
 
-mynetwork.add_global_translation('Command',
-                                 ('Status', 99),
-                                 ('Reset', 98))
+mn = MN("/dev/ttyUSB1")
 
-GreenDude = mynetwork.add_node(11, "unsigned int Command;"
-                                   "byte Lights[7];"
-                                   "byte Temperature;", "GreenDude")
+time.sleep(2)
 
-GreenDude.add_translation('Command',
-                          ('Disp', 1101),
-                          ('SetPasscode', 1102),
-                          ('CorrectPasscode', 1103))
+print "shutting network down..."
+mn.shut_down()
