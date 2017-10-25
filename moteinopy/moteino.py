@@ -98,6 +98,7 @@ class Struct(object):
         self.NofBytes = 0
         self.StructString = structstring
         self._dissect_structstring(structstring)
+        self.LengthInHex = sum([2*part[0].NofBytes for part in self.Parts])
 
     def _dissect_structstring(self, structstring):
         lines = structstring.rstrip(';').split(';')  # remove the last ';' and split by the other ones
@@ -161,6 +162,11 @@ class Struct(object):
         :param s: str
         :return: dict
         """
+
+        # fill in missing trailing zeros
+        if len(s) < self.LengthInHex:
+            s = s + ("0"*(self.LengthInHex - len(s))).encode('ascii')
+        print(s)
         returner = dict()
         for (Type, Name) in self.Parts:
             returner[Name] = Type.hex2dec(s[:2*Type.NofBytes])
@@ -396,6 +402,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
             for f, t in translations.items():
                 s += "\n\t\t{} -> {}".format(f, t)
         print(s)
+
 
 class BaseMoteino(Node):
     def __init__(self, network, _id):
