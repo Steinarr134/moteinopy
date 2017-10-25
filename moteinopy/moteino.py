@@ -389,6 +389,13 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         else:
             return None
 
+    def list_translations(self):
+        s = "Translation routines for {}".format(self)
+        for part, translations in self.Translations.items():
+            s += "\n\tRegarding {}:".format(part)
+            for f, t in translations.items():
+                s += "\n\t\t{} -> {}".format(f, t)
+        print(s)
 
 class BaseMoteino(Node):
     def __init__(self, network, _id):
