@@ -256,7 +256,16 @@ void printTheStuff()
   hexprint(r.sender);
   hexprint(r.send2);
   hexprint(r.rssi);
-  for (int i = 0; i < 61; i++)
+  byte print_up_to = 61
+  for (byte i = 61; i >= 0; i--)
+  {
+    if (RadioBuffer[i] != 0)
+    {
+      byte print_up_to = i;
+      break;
+    }
+  }
+  for (int i = 0; i <= print_up_to; i++)
   {
     hexprint(RadioBuffer.x[i]);
   }
