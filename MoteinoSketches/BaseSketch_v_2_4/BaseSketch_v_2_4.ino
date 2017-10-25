@@ -44,7 +44,7 @@
 */
 
 
-
+#define debug(a) //(Serial.print(a))
 
 #include <RFM69.h>
 #include <SPI.h>
@@ -267,16 +267,19 @@ void sendTheStuff()
 {
   SerialStruct s = *(SerialStruct*)(SerialBuffer);
 
-  //Serial.print("sending to: ");
-  //Serial.println(s.send2id);
-  //if (s.ack_requested)
-  //{
-  //  Serial.println("Ack requeested");
-  //}
+  debug("sending to: ");
+  debug(s.send2id);
+  if (s.ack_requested)
+  {
+    debug("\tAck requeested");
+  }
+  debug("\n");
+
+  //delay(500); 
   
   if (s.ack_requested)
   {
-    bool success = radio.sendWithRetry(s.send2id, (const void*)(&s.buffer), SerialCounter - 3, s.retries, 10);
+    bool success = radio.sendWithRetry(s.send2id, (const void*)(&s.buffer), SerialCounter - 3, s.retries, 2000);
     hexprint(self_id);
     hexprint(s.send2id);
     hexprint(success);
@@ -369,4 +372,3 @@ byte hexval(char c)
     return 10 + c - 'a';
   }
 }
-
