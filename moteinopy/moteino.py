@@ -7,6 +7,7 @@ from moteinopy.DataTypes import types, Array, Byte, Char, Bool
 __author__ = 'SteinarrHrafn'
 
 logger = logging.getLogger(__name__)
+logging.basicConfig()
 
 CorrectBaseSketchWakeupSign = b"moteinopy basesketch v2.3"
 
@@ -481,7 +482,7 @@ class ListeningThread(threading.Thread):
         self.Stop = False
 
     def stop(self):
-        logging.debug("Listening thread stopping")
+        logger.debug("Listening thread stopping")
         self.Stop = True
         self.Listen2.write('X')
         self.Listen2.close()
@@ -493,7 +494,7 @@ class ListeningThread(threading.Thread):
             try:
                 incoming = self.Listen2.readline().rstrip()  # use [:-1]?
             except serial.SerialException as e:
-                logging.debug("Serial exception occured: " + str(e))
+                logger.debug("Serial exception occured: " + str(e))
                 if not self.Stop:
                     logger.warning("serial exception ocurred: " + str(e))
                     break
@@ -871,32 +872,6 @@ class MoteinoNetwork(object):
             self.AckFunction = ack
         if no_ack is not None:
             self.NoAckFunction = no_ack
-
-    # def receive(self, sender, diction):
-    #     """
-    #     User should overwrite this function
-    #     :param sender: Node
-    #     :param diction: dict
-    #     """
-    #     print("MoteinoNetwork received: " + str(diction) + " from " + sender.Name)
-    #
-    # def no_ack(self, sender, last_sent_diction):
-    #     """
-    #     User might want to overwrite this function
-    #     :param sender: Node
-    #     :param last_sent_diction: dict
-    #     """
-    #     print("Oh no! We didn't recieve an ACK from " + sender.Name + " when we sent " + str(last_sent_diction))
-    #
-    # def ack(self, sender, last_sent_diction):
-    #     """
-    #     This function is totally unnecessary.... mostly for debugging but maybe
-    #     it will be useful someday to overwrite this with something
-    #     :param sender: Node
-    #     :param last_sent_diction: dict
-    #     """
-    #     if self.print_when_acks_recieved:
-    #         print(sender.Name + " responded with an ack when we sent: " + str(last_sent_diction))
 
 
 def look_for_base(port, baudrate=115200):
