@@ -456,7 +456,7 @@ class Send2ParentThread(threading.Thread):
         elif self.Network.PromiscousMode:
             # Promiscous mode will just print all info
             print("A Node with ID=" + str(sender_id) + " sent: " + self.Incoming[6:] + " to ID=" +
-                  "" + str(Byte.hex2dec(self.Incoming[2:4])) + ", rssi=" + str(Byte.hex(self.Incoming[4:6])))
+                  "" + str(Byte.hex2dec(self.Incoming[2:4])) + ", rssi=" + str(Byte.hex(self.Incoming[4:6])-0x7f))
 
         elif sender_id not in self.Network.nodes:
             logger.warning("Something must be wrong because BaseMoteino just recieved a message "
@@ -466,7 +466,7 @@ class Send2ParentThread(threading.Thread):
             self.Network.Base.send2parent(self.Incoming[2:])
         else:
             # send2id is at self.Incoming[2:4] but whould always be BaseID here.
-            self.Network.RSSI = Byte.hex2dec(self.Incoming[4:6])
+            self.Network.RSSI = Byte.hex2dec(self.Incoming[4:6]) - 0x7f
             self.Network.nodes[sender_id].send2parent(self.Incoming[6:])
 
 
@@ -655,6 +655,7 @@ class MoteinoNetwork(object):
         self.start_listening()
 
         self.version = "2.4b"
+        self.logger = logger
 
     def _initiate_base(self,
                        frequency=RF69_433MHZ,
