@@ -483,6 +483,17 @@ class Send2ParentThread(threading.Thread):
             self.Network.nodes[sender_id].send2parent(self.Incoming[6:])
 
 
+def is_hex_string(s):
+    # If anyone happens to read this, feel free to implement a better way
+    # of checking if a string only conteins hex characters
+    if not s:
+        return False
+    for c in s:
+        if c not in "0123456789abcdefgABCDEFG":
+            return False
+    return True
+
+
 class ListeningThread(threading.Thread):
     """
     A thread that listens to the Serial port. When something (that ends with a newline) is recieved
@@ -511,9 +522,10 @@ class ListeningThread(threading.Thread):
             if self.Stop:
                 break
             else:
-                logger.debug("Serial port said: " + str(incoming))
-                if incoming:
+                if is_hex_string(incoming):
                     Send2ParentThread(self.Network, incoming).start()
+                else:
+                    logger.debug("Serial port said: " + str(incoming))
         logger.info("Serial listening thread shutting down")
 
 RF69_315MHZ = 31
