@@ -7,6 +7,7 @@ from moteinopy.DataTypes import types, Array, Byte, Char, Bool
 __author__ = 'SteinarrHrafn'
 
 logger = logging.getLogger(__name__)
+logging.basicConfig()
 
 CorrectBaseSketchWakeupSign = b"moteinopy basesketch v2.3"
 
@@ -216,7 +217,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         if no_ack is not None:
             self.NoAckFunction = no_ack
 
-    def _translate(self, part, key):
+    def _translate(self, part, key, from_network=False):
         """
         Looks for a translation, returns the key if no translation is found
         :param part: string
@@ -231,7 +232,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
                 #       "".format(self.Struct.Parts_dict[part].ReturnType,
                 #                    type(key),
                 #                 self.Struct.Parts_dict[part].ReturnType is type(key)))
-                if self.Struct.Parts_dict[part].ReturnType is not type(key):
+                if from_network or self.Struct.Parts_dict[part].ReturnType is not type(key):
                     return self.Translations[part][key]
         # print "no translation, just returning value: " + str(value)
         return key
@@ -362,7 +363,7 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         # translate and add useful entries
         d = dict()
         for part, key in list(_d.items()):
-            d[part] = self._translate(part, key)
+            d[part] = self._translate(part, key, from_network=True)
         d['SenderID'] = self.ID
         d['SenderName'] = self.Name
         d['Sender'] = self
@@ -469,7 +470,7 @@ class Send2ParentThread(threading.Thread):
         elif self.Network.PromiscousMode:
             # Promiscous mode will just print all info
             print("A Node with ID=" + str(sender_id) + " sent: " + self.Incoming[6:] + " to ID=" +
-                  "" + str(Byte.hex2dec(self.Incoming[2:4])) + ", rssi=" + str(Byte.hex(self.Incoming[4:6])))
+                  "" + str(Byte.hex2dec(self.Incoming[2:4])) + ", rssi=" + str(Byte.hex(self.Incoming[4:6])-0x7f))
 
         elif sender_id not in self.Network.nodes:
             logger.warning("Something must be wrong because BaseMoteino just recieved a message "
@@ -479,7 +480,7 @@ class Send2ParentThread(threading.Thread):
             self.Network.Base.send2parent(self.Incoming[2:])
         else:
             # send2id is at self.Incoming[2:4] but whould always be BaseID here.
-            self.Network.RSSI = Byte.hex2dec(self.Incoming[4:6])
+            self.Network.RSSI = Byte.hex2dec(self.Incoming[4:6]) - 0x7f
             self.Network.nodes[sender_id].send2parent(self.Incoming[6:])
 
 
@@ -506,7 +507,9 @@ class ListeningThread(threading.Thread):
         self.Stop = False
 
     def stop(self):
+        logger.debug("Listening thread stopping")
         self.Stop = True
+        self.Listen2.write('X')
         self.Listen2.close()
 
     def run(self):
@@ -516,6 +519,7 @@ class ListeningThread(threading.Thread):
             try:
                 incoming = self.Listen2.readline().rstrip()  # use [:-1]?
             except serial.SerialException as e:
+                logger.debug("Serial exception occured: " + str(e))
                 if not self.Stop:
                     logger.warning("serial exception ocurred: " + str(e))
                     break
@@ -677,6 +681,7 @@ class MoteinoNetwork(object):
         self.start_listening()
 
         self.version = "2.4b"
+        self.logger = logger
 
     def _initiate_base(self,
                        frequency=RF69_433MHZ,
@@ -716,6 +721,9 @@ class MoteinoNetwork(object):
     def shut_down(self):
         self.stop_waiting_for_radio()
         self.stop_listening()
+
+    # def __del__(self):
+    #     self.shut_down()
 
     def _wait_for_radio(self, max_wait=None):
         """
@@ -895,32 +903,6 @@ class MoteinoNetwork(object):
         if no_ack is not None:
             self.NoAckFunction = no_ack
 
-    # def receive(self, sender, diction):
-    #     """
-    #     User should overwrite this function
-    #     :param sender: Node
-    #     :param diction: dict
-    #     """
-    #     print("MoteinoNetwork received: " + str(diction) + " from " + sender.Name)
-    #
-    # def no_ack(self, sender, last_sent_diction):
-    #     """
-    #     User might want to overwrite this function
-    #     :param sender: Node
-    #     :param last_sent_diction: dict
-    #     """
-    #     print("Oh no! We didn't recieve an ACK from " + sender.Name + " when we sent " + str(last_sent_diction))
-    #
-    # def ack(self, sender, last_sent_diction):
-    #     """
-    #     This function is totally unnecessary.... mostly for debugging but maybe
-    #     it will be useful someday to overwrite this with something
-    #     :param sender: Node
-    #     :param last_sent_diction: dict
-    #     """
-    #     if self.print_when_acks_recieved:
-    #         print(sender.Name + " responded with an ack when we sent: " + str(last_sent_diction))
-
 
 def look_for_base(port, baudrate=115200):
     """
@@ -947,7 +929,7 @@ def look_for_base(port, baudrate=115200):
     except serial.SerialException as e:
         return False, "No luck on port '{}', ".format(port) + repr(e)
 
-    time.sleep(1)
+    time.sleep(3)
 
     if s.in_waiting <= 0:
         return False, "Base doesn't seem to be present on '{}'. " \
