@@ -3,6 +3,8 @@ import threading
 import time
 import logging
 import sys
+import fcntl
+import signal
 from moteinopy.DataTypes import types, Array, Byte, Char, Bool
 __author__ = 'SteinarrHrafn'
 
@@ -26,15 +28,34 @@ else:
     unicode = str
 
 
+class SerialPortInUseError(Exception):
+    pass
+
+
 class MySerial(object):
     # A custom serial class only to encode unicode into ascii before writing
     def __init__(self, **kwargs):
+        override_lock = False
+        if "override_serial_lock" in kwargs:
+            override_lock = kwargs["override_serial_lock"]
+            kwargs.pop("override_serial_lock")
+
         self.Serial = serial.Serial(**kwargs)
+        if self.Serial.isOpen():
+            try:
+                fcntl.flock(self.Serial.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except IOError:
+                if not override_lock:
+                    raise SerialPortInUseError("Serial port '{}' is in use by another process. "
+                                               "You can pass 'override_serial_lock=True' to ignore lock "
+                                               "but that will likely cause problems".format(kwargs["port"]))
         self.read = self.Serial.read
         self.readline = self.Serial.readline
         self.isOpen = self.Serial.isOpen
         self.open = self.Serial.open
         self.close = self.Serial.close
+        self.in_waiting = self.Serial.in_waiting
+        self.cancel_read = self.Serial.cancel_read
 
     def write(self, s):
         if isinstance(s, unicode):
@@ -152,6 +173,10 @@ class Struct(object):
                             sys.exc_info()[2])
             else:
                 returner += Type.hexprints()  # hexprints() assumes value is 0
+
+        # don't return trailing pairs of zeroes
+        while len(returner) > 2 and returner[-2:] == "00":
+            returner = returner[:-2]
         return returner
 
     def decode(self, s):
@@ -167,7 +192,7 @@ class Struct(object):
         # fill in missing trailing zeros
         if len(s) < self.LengthInHex:
             s = s + ("0"*(self.LengthInHex - len(s))).encode('ascii')
-        print(s)
+        print("struct decode(", s, ")")
         returner = dict()
         for (Type, Name) in self.Parts:
             returner[Name] = Type.hex2dec(s[:2*Type.NofBytes])
@@ -193,8 +218,10 @@ class Node(object):  # maybe rename this to Node?..... Finally done! :D
         self.default_request_ack = None
 
     def __str__(self):
-        return "Node(" + self.Name + ") with id(" + str(self.ID) \
-               + ") and " + str(self.Struct)
+        return "Node({name}) with id({i}={i_hex}) and {struct}".format(name=self.Name,
+                                                                       i=self.ID,
+                                                                       i_hex=hex(self.ID),
+                                                                       struct=str(self.Struct))
 
     def __repr__(self):
         return self.__str__()
@@ -415,7 +442,7 @@ class BaseMoteino(Node):
         """
         Node.__init__(self, network, _id, "byte send2id;bool AckReceived;byte rssi;", 'BaseMoteino')
 
-    def send2parent(self, payload):
+    def  send2parent(self, payload):
         d = self.Struct.decode(payload)
         if d['send2id'] not in self.Network.nodes:
             raise ValueError("send2id={} not in known nodes".format(d['send2id']))  # this should never happen
@@ -453,7 +480,7 @@ class Send2ParentThread(threading.Thread):
     thread from the recieve, no_ack or ack functions.
     """
     def __init__(self, network, incoming):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name="moteinopy.Send2ParentThread")
         self.Incoming = incoming
         self.Network = network
 
@@ -494,30 +521,30 @@ def is_hex_string(s):
             return False
     return True
 
-
 class ListeningThread(threading.Thread):
     """
     A thread that listens to the Serial port. When something (that ends with a newline) is recieved
     the thread will start up a Send2Parent thread and go back to listening to the Serial port
     """
     def __init__(self, network, listen2):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name="moteinopy.ListeningThread")
         self.Network = network
         self.Listen2 = listen2
         self.Stop = False
 
-    def stop(self):
-        logger.debug("Listening thread stopping")
+    def stop(self, sig=None, frame=None):
+        logger.debug("Listening thread attempting to stop itself")
         self.Stop = True
-        self.Listen2.write('X')
-        self.Listen2.close()
+        self.Listen2.cancel_read()
 
     def run(self):
         logger.debug("Serial listening thread started")
         incoming = ''
         while True:
             try:
+                # print "entering readline"
                 incoming = self.Listen2.readline().rstrip()  # use [:-1]?
+                # print "out of readline"
             except serial.SerialException as e:
                 logger.debug("Serial exception occured: " + str(e))
                 if not self.Stop:
@@ -526,11 +553,13 @@ class ListeningThread(threading.Thread):
             if self.Stop:
                 break
             else:
+                logger.debug("Serial port said: " + str(incoming))
                 if is_hex_string(incoming):
                     Send2ParentThread(self.Network, incoming).start()
                 else:
-                    logger.debug("Serial port said: " + str(incoming))
+                    logger.error("Serial port said: " + str(incoming))
         logger.info("Serial listening thread shutting down")
+        self.Listen2.close()
 
 RF69_315MHZ = 31
 RF69_433MHZ = 43
@@ -616,7 +645,9 @@ class MoteinoNetwork(object):
                  base_id=1,
                  promiscous_mode=False,
                  init_base=True,
-                 baudrate=115200):
+                 baudrate=115200,
+                 logger_level=logging.WARNING,
+                 override_serial_lock=False):
         """
 
         :param port: str
@@ -629,12 +660,14 @@ class MoteinoNetwork(object):
         :return:
         """
 
+        logger.setLevel(logger_level)
+
         # initiate serial port and base
         if not port:
             self._Serial = FakeSerial()
             init_base = False
         else:
-            self._Serial = MySerial(port=port, baudrate=baudrate)
+            self._Serial = MySerial(port=port, baudrate=baudrate, override_serial_lock=override_serial_lock)
 
         if init_base:
             self._initiate_base(frequency, high_power, network_id, base_id, encryption_key, promiscous_mode)
@@ -707,12 +740,15 @@ class MoteinoNetwork(object):
             encryption_key = [chr(0)]*16
         for x in encryption_key:
             encryption_key_hex += Char.hex(x)
-        self._Serial.write(Byte.hex(frequency) +
-                           Byte.hex(base_id) +
-                           Byte.hex(network_id) +
-                           Bool.hex(high_power) +
-                           encryption_key_hex +
-                           Bool.hex(promiscous_mode) + "\n")
+
+        init_string = Byte.hex(frequency) + \
+                           Byte.hex(base_id) + \
+                           Byte.hex(network_id) + \
+                           Bool.hex(high_power) + \
+                           encryption_key_hex + \
+                           Bool.hex(promiscous_mode) + "\n"
+        self._Serial.write(init_string)
+        logger.debug("base init string: " + init_string)
         logger.debug("waiting for ready sign from base...")
         incoming = self._Serial.readline().rstrip()
         assert incoming == b"Ready"
@@ -904,7 +940,7 @@ class MoteinoNetwork(object):
             self.NoAckFunction = no_ack
 
 
-def look_for_base(port, baudrate=115200):
+def look_for_base(port, baudrate=115200, override_serial_lock=False):
     """
     This is a user importable function that can be deployed to check if a serial port
     has a base present or not. This will be usefull if more then one serial port are
@@ -924,9 +960,9 @@ def look_for_base(port, baudrate=115200):
 
     # Try to open serial port, expect to run into trouble
     try:
-        s = serial.Serial(port, baudrate=baudrate, timeout=1, writeTimeout=1)
+        s = MySerial(port=port, baudrate=baudrate, timeout=1, writeTimeout=1, override_serial_lock=override_serial_lock)
         s.write(b"X")
-    except serial.SerialException as e:
+    except (serial.SerialException, SerialPortInUseError) as e:
         return False, "No luck on port '{}', ".format(port) + repr(e)
 
     time.sleep(3)
