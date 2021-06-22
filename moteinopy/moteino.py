@@ -54,7 +54,6 @@ class MySerial(object):
         self.isOpen = self.Serial.isOpen
         self.open = self.Serial.open
         self.close = self.Serial.close
-        self.in_waiting = self.Serial.in_waiting
         self.cancel_read = self.Serial.cancel_read
 
     def write(self, s):
@@ -62,6 +61,9 @@ class MySerial(object):
             self.Serial.write(s.encode('ascii'))
         else:
             self.Serial.write(s)
+
+    def in_waiting(self):
+        return self.Serial.in_waiting
 
 
 class FakeSerial(object):
@@ -73,6 +75,9 @@ class FakeSerial(object):
 
     def read(self):
         pass
+
+    def cancel_read(self):
+        self.E.set()
 
     def readline(self):
         self.E.wait()
@@ -192,7 +197,7 @@ class Struct(object):
         # fill in missing trailing zeros
         if len(s) < self.LengthInHex:
             s = s + ("0"*(self.LengthInHex - len(s))).encode('ascii')
-        print("struct decode(", s, ")")
+        # print("struct decode(", s, ")")
         returner = dict()
         for (Type, Name) in self.Parts:
             returner[Name] = Type.hex2dec(s[:2*Type.NofBytes])
@@ -494,8 +499,8 @@ class Send2ParentThread(threading.Thread):
             # Special case for basereporter
             self.Network.BaseReporter.send2parent(self.Incoming[2:])
 
-        elif self.Network.PromiscousMode:
-            # Promiscous mode will just print all info
+        elif self.Network.SpyMode:
+            # Spy mode will just print all info
             print("A Node with ID=" + str(sender_id) + " sent: " + self.Incoming[6:] + " to ID=" +
                   "" + str(Byte.hex2dec(self.Incoming[2:4])) + ", rssi=" + str(Byte.hex(self.Incoming[4:6])-0x7f))
 
@@ -558,8 +563,8 @@ class ListeningThread(threading.Thread):
                     Send2ParentThread(self.Network, incoming).start()
                 else:
                     logger.error("Serial port said: " + str(incoming))
-        logger.info("Serial listening thread shutting down")
         self.Listen2.close()
+        logger.info("Serial listening thread successfully shut down")
 
 RF69_315MHZ = 31
 RF69_433MHZ = 43
@@ -643,7 +648,7 @@ class MoteinoNetwork(object):
                  network_id=1,
                  encryption_key='',
                  base_id=1,
-                 promiscous_mode=False,
+                 spy_mode=False,
                  init_base=True,
                  baudrate=115200,
                  logger_level=logging.WARNING,
@@ -670,7 +675,7 @@ class MoteinoNetwork(object):
             self._Serial = MySerial(port=port, baudrate=baudrate, override_serial_lock=override_serial_lock)
 
         if init_base:
-            self._initiate_base(frequency, high_power, network_id, base_id, encryption_key, promiscous_mode)
+            self._initiate_base(frequency, high_power, network_id, base_id, encryption_key, spy_mode)
         else:
             logger.info("Initialisation of base skipped")
 
@@ -682,7 +687,7 @@ class MoteinoNetwork(object):
         self.ReceiveWithSendAndReceive = False
         self.print_when_acks_recieved = False
         self._network_is_shutting_down = False
-        self.PromiscousMode = promiscous_mode
+        self.SpyMode = spy_mode
 
         # Network attributes
         self.nodes = dict()
@@ -722,7 +727,7 @@ class MoteinoNetwork(object):
                        network_id=1,
                        base_id=1,
                        encryption_key="0123456789abcdef",
-                       promiscous_mode=False):
+                       spy_mode=False):
 
         self._Serial.write('X')     # send reset sign
         logger.debug("Restarting base")
@@ -742,11 +747,11 @@ class MoteinoNetwork(object):
             encryption_key_hex += Char.hex(x)
 
         init_string = Byte.hex(frequency) + \
-                           Byte.hex(base_id) + \
-                           Byte.hex(network_id) + \
-                           Bool.hex(high_power) + \
-                           encryption_key_hex + \
-                           Bool.hex(promiscous_mode) + "\n"
+                      Byte.hex(base_id) + \
+                      Byte.hex(network_id) + \
+                      Bool.hex(high_power) + \
+                      encryption_key_hex + \
+                      Bool.hex(spy_mode) + "\n"
         self._Serial.write(init_string)
         logger.debug("base init string: " + init_string)
         logger.debug("waiting for ready sign from base...")
@@ -961,17 +966,18 @@ def look_for_base(port, baudrate=115200, override_serial_lock=False):
     # Try to open serial port, expect to run into trouble
     try:
         s = MySerial(port=port, baudrate=baudrate, timeout=1, writeTimeout=1, override_serial_lock=override_serial_lock)
+        time.sleep(0.2)
         s.write(b"X")
     except (serial.SerialException, SerialPortInUseError) as e:
         return False, "No luck on port '{}', ".format(port) + repr(e)
 
-    time.sleep(3)
+    time.sleep(2)
 
-    if s.in_waiting <= 0:
+    if s.in_waiting() <= 0:
         return False, "Base doesn't seem to be present on '{}'. " \
                       "nothing is being transmitted over the serial port".format(port)
 
-    stuff = s.read(s.in_waiting).split('\n')[0]
+    stuff = s.read(s.in_waiting()).split('\n')[0]
 
     if stuff.rstrip() == CorrectBaseSketchWakeupSign:
         return True, "Success, base is present on '{}'".format(port)
